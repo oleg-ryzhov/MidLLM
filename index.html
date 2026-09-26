@@ -98,6 +98,11 @@
 
     <!-- Header Actions & Status Badges -->
     <div class="flex items-center gap-4">
+      <div id="storage-status-badge" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+        <i class="fa-solid fa-hard-drive text-cyan-400"></i>
+        <span>Storage: <strong id="storage-status-text" class="text-emerald-400">Local Ready</strong></span>
+      </div>
+
       <div id="backend-badge" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
         <i class="fa-solid fa-microchip text-cyan-400"></i>
         <span>Backend: <strong id="backend-type" class="text-white">Detecting...</strong></span>
@@ -125,6 +130,9 @@
     </button>
     <button onclick="switchTab('dataset')" id="tab-btn-dataset" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
       <i class="fa-solid fa-database"></i> Dataset Editor
+    </button>
+    <button onclick="switchTab('storage')" id="tab-btn-storage" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
+      <i class="fa-solid fa-floppy-disk"></i> Device Storage Backup
     </button>
   </div>
 
@@ -504,6 +512,77 @@
       </div>
     </div>
 
+    <!-- ==================== TAB 6: DEVICE STORAGE BACKUP ==================== -->
+    <div id="tab-storage" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Local Storage Controls -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Storage Settings Panel -->
+        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
+          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-key text-cyan-400"></i> Local Storage Settings
+          </h2>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Active Storage Target File</label>
+              <input type="text" id="storage-filename-input" value="llm_studio_backup.json" readonly class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs font-mono text-slate-300">
+            </div>
+
+            <button id="select-file-btn" onclick="saveToDeviceFile(true)" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-export"></i> Select / Bind Local File Handle
+            </button>
+          </div>
+        </div>
+
+        <!-- Auto-Backup Timer Panel -->
+        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
+          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-clock text-emerald-400"></i> Auto-Backup Status
+          </h2>
+
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between py-1 border-b border-slate-800">
+              <span class="text-slate-400">Auto-Backup Interval</span>
+              <span class="font-mono text-cyan-400 font-bold">Every 5 Minutes</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-800">
+              <span class="text-slate-400">Next Automatic Backup In</span>
+              <span id="timer-display" class="font-mono text-emerald-400 font-bold">05:00</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Last Backup Timestamp</span>
+              <span id="last-backup-time" class="font-mono text-slate-300">Never</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button id="backup-now-btn" onclick="saveToDeviceFile(false)" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Backup Now
+            </button>
+            <button id="restore-btn" onclick="restoreFromLocalStorage()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-rotate-left"></i> Restore Latest
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Storage Activity Console -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-3">
+          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-terminal text-cyan-400"></i> Local Storage Activity Console
+          </h2>
+          <div id="storage-console-output" class="bg-slate-950 rounded-lg p-4 font-mono text-xs text-slate-300 h-80 overflow-y-auto border border-slate-800 leading-relaxed space-y-1">
+            <div class="text-slate-500">// Local backup logs and device storage status updates will stream here...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </main>
 
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
@@ -579,6 +658,12 @@ The transformer architecture scales effectively across parallel compute infrastr
     let currentStep = 0;
     let totalStepsCount = 0;
     let lossHistory = [];
+
+    // Local Storage & Backup State
+    let hasUnsavedChanges = false;
+    let fileHandle = null;
+    let countdownTimer = null;
+    let secondsRemaining = 300; // 5 minute auto-backup timer
 
 
     /**
@@ -822,6 +907,9 @@ The transformer architecture scales effectively across parallel compute infrastr
       document.getElementById('dataset-char-count').innerText = text.length;
       document.getElementById('custom-char-count').innerText = text.length;
 
+      // Mark changes for auto-backup
+      hasUnsavedChanges = true;
+
       // Automatically initialize model when dataset changes
       buildModelFromParams();
     }
@@ -978,6 +1066,8 @@ The transformer architecture scales effectively across parallel compute infrastr
           currentStep++;
           totalStepsCount++;
           totalProcessedTokens += batchSize * blockSize;
+          lossHistory.push(lossNum);
+          hasUnsavedChanges = true;
 
           // Performance stats
           const elapsedSec = (Date.now() - startTime) / 1000;
@@ -1213,6 +1303,209 @@ The transformer architecture scales effectively across parallel compute infrastr
     }
 
 
+    // ==========================================================
+    // LOCAL DEVICE STORAGE & AUTO-BACKUP LOGIC
+    // ==========================================================
+
+    function logStorageMessage(message, type = 'info') {
+      const consoleOutput = document.getElementById('storage-console-output');
+      if (!consoleOutput) return;
+      const timeStr = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+
+      let colorClass = 'text-sky-400';
+      let icon = 'ℹ️';
+      if (type === 'success') { colorClass = 'text-emerald-400'; icon = '✅'; }
+      if (type === 'error') { colorClass = 'text-rose-400'; icon = '❌'; }
+      if (type === 'warning') { colorClass = 'text-amber-400'; icon = '⚠️'; }
+
+      div.className = `${colorClass}`;
+      div.textContent = `[${timeStr}] ${icon} ${message}`;
+      consoleOutput.appendChild(div);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function getApplicationData() {
+      return {
+        timestamp: new Date().toISOString(),
+        datasetText: currentText,
+        hyperparams: {
+          blockSize: parseInt(document.getElementById('param-block-size').value),
+          embedDim: parseInt(document.getElementById('param-embed-dim').value),
+          heads: parseInt(document.getElementById('param-heads').value),
+          layers: parseInt(document.getElementById('param-layers').value),
+          batchSize: parseInt(document.getElementById('param-batch-size').value),
+          lr: parseFloat(document.getElementById('param-lr').value),
+          epochs: parseInt(document.getElementById('param-epochs').value)
+        },
+        generationParams: {
+          temp: parseFloat(document.getElementById('param-temp').value),
+          topK: parseInt(document.getElementById('param-topk').value),
+          genTokens: parseInt(document.getElementById('param-gen-tokens').value)
+        },
+        metrics: {
+          currentEpoch,
+          currentStep,
+          lossHistory
+        }
+      };
+    }
+
+    async function saveToDeviceFile(forcePicker = false) {
+      const data = getApplicationData();
+      const jsonString = JSON.stringify(data, null, 2);
+
+      // Save synchronously to localStorage as immediate safety net
+      localStorage.setItem('llm_studio_local_backup', jsonString);
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          // Open file picker if no handle exists or explicitly requested
+          if (!fileHandle || forcePicker) {
+            fileHandle = await window.showSaveFilePicker({
+              suggestedName: 'llm_studio_backup.json',
+              types: [{
+                description: 'JSON Backup File',
+                accept: { 'application/json': ['.json'] },
+              }],
+            });
+            document.getElementById('storage-filename-input').value = fileHandle.name;
+            logStorageMessage(`Bound target file: ${fileHandle.name}`, 'info');
+          }
+
+          // Write and overwrite contents of the single file directly
+          const writable = await fileHandle.createWritable();
+          await writable.write(jsonString);
+          await writable.close();
+
+          hasUnsavedChanges = false;
+          const timeStr = new Date().toLocaleTimeString();
+          document.getElementById('last-backup-time').innerText = timeStr;
+          logStorageMessage(`Successfully saved data to single file on device!`, 'success');
+          resetAutoBackupTimer();
+          return true;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            logStorageMessage('File save prompt was canceled by the user.', 'warning');
+          } else {
+            logStorageMessage(`File write error: ${err.message}`, 'error');
+          }
+          return false;
+        }
+      } else {
+        // Fallback for browsers without File System Access API
+        fallbackDownload(jsonString);
+        hasUnsavedChanges = false;
+        const timeStr = new Date().toLocaleTimeString();
+        document.getElementById('last-backup-time').innerText = timeStr;
+        logStorageMessage('Saved via file download fallback and updated localStorage.', 'success');
+        resetAutoBackupTimer();
+        return true;
+      }
+    }
+
+    function fallbackDownload(jsonString) {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = 'llm_studio_backup.json';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    }
+
+    function restoreFromLocalStorage() {
+      const savedData = localStorage.getItem('llm_studio_local_backup');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          if (parsed.datasetText) {
+            currentText = parsed.datasetText;
+            document.getElementById('custom-dataset-input').value = currentText;
+            processTextCorpus(currentText);
+          }
+          if (parsed.hyperparams) {
+            if (parsed.hyperparams.blockSize) {
+              document.getElementById('param-block-size').value = parsed.hyperparams.blockSize;
+              document.getElementById('val-block-size').innerText = parsed.hyperparams.blockSize;
+            }
+            if (parsed.hyperparams.embedDim) {
+              document.getElementById('param-embed-dim').value = parsed.hyperparams.embedDim;
+              document.getElementById('val-embed-dim').innerText = parsed.hyperparams.embedDim;
+            }
+            if (parsed.hyperparams.heads) {
+              document.getElementById('param-heads').value = parsed.hyperparams.heads;
+              document.getElementById('val-heads').innerText = parsed.hyperparams.heads;
+            }
+            if (parsed.hyperparams.layers) {
+              document.getElementById('param-layers').value = parsed.hyperparams.layers;
+              document.getElementById('val-layers').innerText = parsed.hyperparams.layers;
+            }
+            if (parsed.hyperparams.batchSize) {
+              document.getElementById('param-batch-size').value = parsed.hyperparams.batchSize;
+              document.getElementById('val-batch-size').innerText = parsed.hyperparams.batchSize;
+            }
+            if (parsed.hyperparams.lr) {
+              document.getElementById('param-lr').value = parsed.hyperparams.lr;
+              document.getElementById('val-lr').innerText = parsed.hyperparams.lr;
+            }
+            if (parsed.hyperparams.epochs) {
+              document.getElementById('param-epochs').value = parsed.hyperparams.epochs;
+              document.getElementById('val-epochs').innerText = parsed.hyperparams.epochs;
+            }
+            buildModelFromParams();
+          }
+          hasUnsavedChanges = false;
+          logStorageMessage(`Restored latest state from local storage (${parsed.timestamp})`, 'success');
+        } catch (e) {
+          logStorageMessage('Failed to parse local backup storage data.', 'error');
+        }
+      } else {
+        logStorageMessage('No previous local backup found in storage.', 'warning');
+      }
+    }
+
+    function startAutoBackupTimer() {
+      secondsRemaining = 300;
+      if (countdownTimer) clearInterval(countdownTimer);
+
+      countdownTimer = setInterval(() => {
+        secondsRemaining--;
+        if (secondsRemaining <= 0) {
+          saveToDeviceFile(false);
+          secondsRemaining = 300;
+        }
+        const mins = Math.floor(secondsRemaining / 60).toString().padStart(2, '0');
+        const secs = (secondsRemaining % 60).toString().padStart(2, '0');
+        const timerElem = document.getElementById('timer-display');
+        if (timerElem) timerElem.innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function resetAutoBackupTimer() {
+      secondsRemaining = 300;
+      const timerElem = document.getElementById('timer-display');
+      if (timerElem) timerElem.innerText = "05:00";
+    }
+
+    // Auto-save on page exit / unload
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges) {
+        localStorage.setItem('llm_studio_local_backup', JSON.stringify(getApplicationData()));
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      if (hasUnsavedChanges) {
+        localStorage.setItem('llm_studio_local_backup', JSON.stringify(getApplicationData()));
+      }
+    });
+
+
     window.addEventListener('DOMContentLoaded', async () => {
       // Check TFJS Backend
       await tf.ready();
@@ -1223,6 +1516,7 @@ The transformer architecture scales effectively across parallel compute infrastr
         const el = document.getElementById(id);
         el.addEventListener('input', () => {
           document.getElementById(target).innerText = el.value;
+          hasUnsavedChanges = true;
         });
       };
 
@@ -1239,10 +1533,20 @@ The transformer architecture scales effectively across parallel compute infrastr
 
       document.getElementById('custom-dataset-input').addEventListener('input', (e) => {
         document.getElementById('custom-char-count').innerText = e.target.value.length;
+        hasUnsavedChanges = true;
       });
 
       initChart();
       preprocessSelectedDataset();
+
+      // Start device storage system & auto-backup timer
+      logStorageMessage('Device Storage initialized.', 'info');
+      startAutoBackupTimer();
+
+      const savedData = localStorage.getItem('llm_studio_local_backup');
+      if (savedData) {
+        logStorageMessage('Previous local backup session detected in browser storage.', 'info');
+      }
     });
   </script>
 </body>
