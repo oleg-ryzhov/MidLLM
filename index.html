@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Browser LLM Studio - Train a Transformer GPT in JavaScript</title>
+  <title>MidLLM — In-Browser GPT Transformer Studio</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,7 +27,7 @@
           },
           fontFamily: {
             mono: ['Fira Code', 'JetBrains Mono', 'ui-monospace', 'monospace'],
-            sans: ['Inter', 'system-ui', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
           }
         }
       }
@@ -44,100 +44,117 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #0f172a;
+      background: #090d16;
     }
     ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 3px;
+      background: #1e293b;
+      border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
+      background: #334155;
     }
     .glass-panel {
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-panel:hover {
+      border-color: rgba(56, 189, 248, 0.2);
     }
     .glow-cyan {
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
     }
-    .glow-green {
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+    .glow-purple {
+      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.3);
     }
     .pulse-dot {
       animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
     }
     @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.15); opacity: 1; }
-      100% { transform: scale(0.95); opacity: 0.8; }
+      0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .bg-grid-pattern {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 24px 24px;
     }
   </style>
 </head>
 
-<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200 overflow-x-hidden">
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200 overflow-x-hidden bg-grid-pattern relative">
 
-  <header class="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg">
-        <i class="fa-solid fa-brain"></i>
+  <!-- Background Ambient Glows -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-xl px-5 py-3.5 flex items-center justify-between shadow-2xl">
+    <div class="flex items-center gap-3.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
+        <i class="fa-solid fa-bolt text-white"></i>
       </div>
       <div>
-        <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
-          Browser LLM Studio
-          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">TFJS WebGL/WebGPU</span>
+        <h1 class="font-black text-xl leading-tight tracking-tight text-white flex items-center gap-2.5">
+          MidLLM
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">TFJS WebGL/WebGPU</span>
         </h1>
-        <p class="text-xs text-slate-400">Train a Decoder-Only GPT Transformer directly inside JavaScript</p>
+        <p class="text-xs text-slate-400 font-medium">Train & Inspect Decoder-Only GPT Models Live in JavaScript</p>
       </div>
     </div>
 
     <!-- Header Actions & Status Badges -->
-    <div class="flex items-center gap-4">
-      <div id="storage-status-badge" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+    <div class="flex items-center gap-3">
+      <div id="storage-status-badge" class="hidden sm:flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
         <i class="fa-solid fa-hard-drive text-cyan-400"></i>
-        <span>Storage: <strong id="storage-status-text" class="text-emerald-400">Local Ready</strong></span>
+        <span>Storage: <strong id="storage-status-text" class="text-emerald-400 font-semibold">Local Ready</strong></span>
       </div>
 
-      <div id="backend-badge" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
-        <i class="fa-solid fa-microchip text-cyan-400"></i>
-        <span>Backend: <strong id="backend-type" class="text-white">Detecting...</strong></span>
+      <div id="backend-badge" class="hidden sm:flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
+        <i class="fa-solid fa-microchip text-indigo-400"></i>
+        <span>Backend: <strong id="backend-type" class="text-white font-semibold">Detecting...</strong></span>
       </div>
 
-      <div id="status-badge" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+      <div id="status-badge" class="flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
         <span class="w-2 h-2 rounded-full bg-slate-500" id="status-dot"></span>
-        <span id="status-text" class="font-medium">Idle</span>
+        <span id="status-text" class="font-semibold tracking-wide">Idle</span>
       </div>
     </div>
   </header>
 
-  <div class="border-b border-slate-800 bg-slate-900/40 px-4 flex gap-2 overflow-x-auto">
-    <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active text-sm font-medium py-3 px-4 border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-chart-line"></i> Training Dashboard
+  <!-- Navigation Tabs -->
+  <div class="border-b border-slate-800/80 bg-slate-900/40 px-5 flex gap-1 overflow-x-auto backdrop-blur-md">
+    <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active text-xs font-bold py-3.5 px-4 border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-chart-line text-sm"></i> Dashboard
     </button>
-    <button onclick="switchTab('playground')" id="tab-btn-playground" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-comments"></i> Inference Playground
+    <button onclick="switchTab('playground')" id="tab-btn-playground" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-comments text-sm"></i> Playground
     </button>
-    <button onclick="switchTab('attention')" id="tab-btn-attention" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-border-all"></i> Attention Heatmap
+    <button onclick="switchTab('attention')" id="tab-btn-attention" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-border-all text-sm"></i> Attention Heatmap
     </button>
-    <button onclick="switchTab('inspector')" id="tab-btn-inspector" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-cubes"></i> Model & Vocab Inspector
+    <button onclick="switchTab('inspector')" id="tab-btn-inspector" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-cubes text-sm"></i> Model Inspector
     </button>
-    <button onclick="switchTab('dataset')" id="tab-btn-dataset" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-database"></i> Dataset Editor
+    <button onclick="switchTab('dataset')" id="tab-btn-dataset" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-database text-sm"></i> Dataset Editor
     </button>
-    <button onclick="switchTab('storage')" id="tab-btn-storage" class="tab-btn text-sm font-medium py-3 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-colors">
-      <i class="fa-solid fa-floppy-disk"></i> Device Storage Backup
+    <button onclick="switchTab('storage')" id="tab-btn-storage" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-floppy-disk text-sm"></i> Backup & Storage
     </button>
   </div>
 
   <!-- Main Container -->
-  <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
+  <main class="flex-1 p-4 lg:p-6 overflow-y-auto relative z-10">
 
     <!-- ==================== TAB 1: DASHBOARD ==================== -->
     <div id="tab-dashboard" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -146,116 +163,116 @@
       <div class="lg:col-span-4 space-y-6">
 
         <!-- Dataset & Preset Selection -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
             <i class="fa-solid fa-book text-cyan-400"></i> Training Dataset
           </h2>
-          <div class="space-y-3">
-            <label class="block text-xs text-slate-400">Select Preset Corpus</label>
-            <select id="preset-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors">
+          <div class="space-y-3.5">
+            <label class="block text-xs font-medium text-slate-400">Select Preset Corpus</label>
+            <select id="preset-select" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
               <option value="shakespeare">Tiny Shakespeare (Classic Drama)</option>
               <option value="python">Python Code Snippets (Algorithms)</option>
               <option value="cybernetics">Philosophy & Cybernetics (Intelligence & Systems)</option>
               <option value="quantum">AI & Quantum Physics (Scientific Explanations)</option>
             </select>
-            <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+            <div class="flex items-center justify-between text-xs text-slate-400 pt-1 font-mono">
               <span>Vocab Size: <strong id="dataset-vocab-count" class="text-cyan-400">0</strong> chars</span>
               <span>Total Tokens: <strong id="dataset-char-count" class="text-slate-200">0</strong></span>
             </div>
-            <button onclick="preprocessSelectedDataset()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2">
-              <i class="fa-solid fa-arrows-rotate"></i> Re-Preprocess & Tokenize
+            <button onclick="preprocessSelectedDataset()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2 shadow-sm">
+              <i class="fa-solid fa-arrows-rotate text-cyan-400"></i> Re-Preprocess & Tokenize
             </button>
           </div>
         </div>
 
         <!-- Hyperparameter Studio -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-emerald-400"></i> Hyperparameter Studio
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-indigo-400"></i> Hyperparameter Studio
           </h2>
 
           <!-- Context Window (Block Size) -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Context Window ($T$ Block Size)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Context Window ($T$ Block Size)</span>
               <span id="val-block-size" class="font-mono text-cyan-400 font-bold">32</span>
             </div>
-            <input type="range" id="param-block-size" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-block-size" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Embedding Dim -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Embedding Dim ($d_{model}$)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Embedding Dim ($d_{model}$)</span>
               <span id="val-embed-dim" class="font-mono text-cyan-400 font-bold">32</span>
             </div>
-            <input type="range" id="param-embed-dim" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-embed-dim" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Attention Heads -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Attention Heads ($n_{head}$)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Attention Heads ($n_{head}$)</span>
               <span id="val-heads" class="font-mono text-cyan-400 font-bold">4</span>
             </div>
-            <input type="range" id="param-heads" min="1" max="8" step="1" value="4" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-heads" min="1" max="8" step="1" value="4" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Transformer Layers -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Transformer Layers ($n_{layer}$)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Transformer Layers ($n_{layer}$)</span>
               <span id="val-layers" class="font-mono text-cyan-400 font-bold">2</span>
             </div>
-            <input type="range" id="param-layers" min="1" max="4" step="1" value="2" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-layers" min="1" max="4" step="1" value="2" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Batch Size -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Batch Size</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Batch Size</span>
               <span id="val-batch-size" class="font-mono text-cyan-400 font-bold">16</span>
             </div>
-            <input type="range" id="param-batch-size" min="4" max="64" step="4" value="16" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-batch-size" min="4" max="64" step="4" value="16" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Learning Rate -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Learning Rate ($\eta$)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Learning Rate ($\eta$)</span>
               <span id="val-lr" class="font-mono text-cyan-400 font-bold">0.003</span>
             </div>
-            <input type="range" id="param-lr" min="0.0005" max="0.01" step="0.0005" value="0.003" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-lr" min="0.0005" max="0.01" step="0.0005" value="0.003" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
           <!-- Epochs -->
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Max Training Epochs</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Max Training Epochs</span>
               <span id="val-epochs" class="font-mono text-cyan-400 font-bold">100</span>
             </div>
-            <input type="range" id="param-epochs" min="10" max="500" step="10" value="100" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-epochs" min="10" max="500" step="10" value="100" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
 
-          <button onclick="buildModelFromParams()" id="btn-initialize-model" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold rounded-lg text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+          <button onclick="buildModelFromParams()" id="btn-initialize-model" class="w-full py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
             <i class="fa-solid fa-cube"></i> Initialize Model Weights
           </button>
         </div>
 
         <!-- Training Execution Panel -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-3">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3.5">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-play text-emerald-400"></i> Execution Controls
           </h2>
           <div class="grid grid-cols-2 gap-3">
-            <button id="btn-train-start" onclick="startTraining()" class="py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition-all">
+            <button id="btn-train-start" onclick="startTraining()" class="py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
               <i class="fa-solid fa-play"></i> Start
             </button>
-            <button id="btn-train-pause" onclick="pauseTraining()" disabled class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-700">
+            <button id="btn-train-pause" onclick="pauseTraining()" disabled class="py-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-700/60 disabled:opacity-50">
               <i class="fa-solid fa-pause"></i> Pause
             </button>
           </div>
-          <button id="btn-train-stop" onclick="stopTraining()" disabled class="w-full py-2.5 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2">
+          <button id="btn-train-stop" onclick="stopTraining()" disabled class="w-full py-2.5 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50">
             <i class="fa-solid fa-stop"></i> Reset & Clear Weights
           </button>
         </div>
@@ -267,35 +284,35 @@
 
         <!-- Live Analytics Counters -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="glass-panel rounded-xl p-4 border border-slate-800">
+          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
             <p class="text-xs text-slate-400 font-medium">Current Loss</p>
-            <p id="metric-loss" class="text-2xl font-mono font-bold text-cyan-400 mt-1">--</p>
+            <p id="metric-loss" class="text-2xl font-mono font-black text-cyan-400 mt-1">--</p>
             <span class="text-[10px] text-slate-500">Cross-Entropy Loss</span>
           </div>
-          <div class="glass-panel rounded-xl p-4 border border-slate-800">
+          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
             <p class="text-xs text-slate-400 font-medium">Perplexity</p>
-            <p id="metric-ppl" class="text-2xl font-mono font-bold text-emerald-400 mt-1">--</p>
-            <span class="text-[10px] text-slate-500">$e^{\text{loss}}$ Uncertainty</span>
+            <p id="metric-ppl" class="text-2xl font-mono font-black text-emerald-400 mt-1">--</p>
+            <span class="text-[10px] text-slate-500">Uncertainty Scale</span>
           </div>
-          <div class="glass-panel rounded-xl p-4 border border-slate-800">
+          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
             <p class="text-xs text-slate-400 font-medium">Epoch / Step</p>
-            <p id="metric-epoch" class="text-2xl font-mono font-bold text-purple-400 mt-1">0 / 0</p>
+            <p id="metric-epoch" class="text-2xl font-mono font-black text-purple-400 mt-1">0 / 0</p>
             <span id="metric-step-total" class="text-[10px] text-slate-500">Total Steps: 0</span>
           </div>
-          <div class="glass-panel rounded-xl p-4 border border-slate-800">
+          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
             <p class="text-xs text-slate-400 font-medium">Training Speed</p>
-            <p id="metric-speed" class="text-2xl font-mono font-bold text-amber-400 mt-1">0 tok/s</p>
+            <p id="metric-speed" class="text-2xl font-mono font-black text-amber-400 mt-1">0 tok/s</p>
             <span id="metric-eta" class="text-[10px] text-slate-500">ETA: --</span>
           </div>
         </div>
 
         <!-- Chart.js Real-time Loss Curve -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <i class="fa-solid fa-chart-area text-cyan-400"></i> Convergence Loss Curve
             </h3>
-            <span class="text-xs text-slate-400">Updated per step</span>
+            <span class="text-[11px] text-slate-400 font-mono">Updated per step</span>
           </div>
           <div class="relative h-64 w-full">
             <canvas id="lossChart"></canvas>
@@ -303,15 +320,15 @@
         </div>
 
         <!-- Live Text Checkpoint Generator -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-3">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <i class="fa-solid fa-terminal text-emerald-400"></i> Real-time Checkpoint Samples
             </h3>
-            <span class="text-xs text-slate-400">Auto-samples every 10 epochs</span>
+            <span class="text-[11px] text-slate-400 font-mono">Auto-samples every 10 epochs</span>
           </div>
-          <div id="checkpoint-log" class="bg-slate-950 rounded-lg p-4 font-mono text-xs text-emerald-400 h-48 overflow-y-auto border border-slate-800 leading-relaxed whitespace-pre-wrap">
-            <span class="text-slate-600">// Training checkpoints will stream here as weights optimize...</span>
+          <div id="checkpoint-log" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-emerald-400 h-48 overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap shadow-inner">
+            <span class="text-slate-600">// MidLLM training checkpoints will stream here as weights optimize...</span>
           </div>
         </div>
 
@@ -324,63 +341,63 @@
 
       <!-- Sampling Config -->
       <div class="lg:col-span-4 space-y-6">
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-5">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-5">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-sliders text-cyan-400"></i> Generation Parameters
           </h2>
 
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Temperature ($T$)</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Temperature ($T$)</span>
               <span id="val-temp" class="font-mono text-cyan-400 font-bold">0.8</span>
             </div>
-            <input type="range" id="param-temp" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full accent-cyan-400 bg-slate-800 rounded">
-            <p class="text-[10px] text-slate-500 mt-1">Higher = more creative/random, Lower = focused/deterministic</p>
+            <input type="range" id="param-temp" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+            <p class="text-[10px] text-slate-500 mt-1">Higher = creative & diverse, Lower = focused & deterministic</p>
           </div>
 
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Top-K Sampling</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Top-K Sampling</span>
               <span id="val-topk" class="font-mono text-cyan-400 font-bold">10</span>
             </div>
-            <input type="range" id="param-topk" min="1" max="50" step="1" value="10" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-topk" min="1" max="50" step="1" value="10" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
             <p class="text-[10px] text-slate-500 mt-1">Restricts sampling candidate set to Top-K tokens</p>
           </div>
 
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Max Generated Tokens</span>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Max Generated Tokens</span>
               <span id="val-gen-tokens" class="font-mono text-cyan-400 font-bold">150</span>
             </div>
-            <input type="range" id="param-gen-tokens" min="20" max="500" step="10" value="150" class="w-full accent-cyan-400 bg-slate-800 rounded">
+            <input type="range" id="param-gen-tokens" min="20" max="500" step="10" value="150" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
           </div>
         </div>
       </div>
 
       <!-- Text Generator Workspace -->
       <div class="lg:col-span-8 space-y-6">
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Prompt & Auto-Completion
           </h2>
 
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Input Prompt String</label>
-            <input type="text" id="prompt-input" value="To be, or not" placeholder="Type starting prompt..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Input Prompt String</label>
+            <input type="text" id="prompt-input" value="To be, or not" placeholder="Type starting prompt..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all">
           </div>
 
           <div class="flex gap-3">
-            <button onclick="generateTextFromPrompt()" id="btn-generate-text" class="flex-1 py-3 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-sm shadow-lg transition-all flex items-center justify-center gap-2">
+            <button onclick="generateTextFromPrompt()" id="btn-generate-text" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-bolt"></i> Generate Stream
             </button>
-            <button onclick="stopGeneration()" id="btn-stop-text" disabled class="py-3 px-5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg text-sm font-semibold border border-slate-700">
+            <button onclick="stopGeneration()" id="btn-stop-text" disabled class="py-3 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 rounded-xl text-xs font-bold border border-slate-700/60 transition-all disabled:opacity-50">
               <i class="fa-solid fa-stop"></i>
             </button>
           </div>
 
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Streaming Model Output</label>
-            <div id="generation-output" class="bg-slate-950 rounded-lg p-4 font-mono text-sm text-cyan-300 min-h-[220px] max-h-[400px] overflow-y-auto border border-slate-800 leading-relaxed whitespace-pre-wrap">
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Streaming Model Output</label>
+            <div id="generation-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-cyan-300 min-h-[220px] max-h-[400px] overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap shadow-inner">
               <span class="text-slate-600">// Generated completion will stream here character by character...</span>
             </div>
           </div>
@@ -391,18 +408,18 @@
 
     <!-- ==================== TAB 3: ATTENTION HEATMAP ==================== -->
     <div id="tab-attention" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-xl p-5 border border-slate-800">
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <i class="fa-solid fa-border-all text-cyan-400"></i> Self-Attention Matrix Visualizer
             </h2>
             <p class="text-xs text-slate-400 mt-1">Visualizes causal attention weights ($Q \cdot K^T / \sqrt{d_k}$) during recent inference pass</p>
           </div>
 
           <div class="flex items-center gap-3">
-            <label class="text-xs text-slate-400">Attention Head:</label>
-            <select id="attn-head-select" onchange="renderAttentionHeatmap()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+            <label class="text-xs font-medium text-slate-400">Attention Head:</label>
+            <select id="attn-head-select" onchange="renderAttentionHeatmap()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
               <option value="0">Head 0</option>
             </select>
           </div>
@@ -416,7 +433,7 @@
         </div>
 
         <!-- Hover Tooltip Info -->
-        <div id="heatmap-info" class="mt-4 p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs font-mono text-slate-400 flex justify-between">
+        <div id="heatmap-info" class="mt-4 p-3.5 bg-slate-900/90 rounded-xl border border-slate-800/80 text-xs font-mono text-slate-400 flex justify-between shadow-inner">
           <span>Target Token: <strong id="attn-target" class="text-cyan-400">--</strong></span>
           <span>Context Token: <strong id="attn-source" class="text-emerald-400">--</strong></span>
           <span>Attention Score: <strong id="attn-score" class="text-purple-400">--</strong></span>
@@ -429,33 +446,33 @@
 
       <!-- Model Specs -->
       <div class="lg:col-span-5 space-y-6">
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-microchip text-emerald-400"></i> Model Specifications
           </h2>
           
           <div class="space-y-2 text-xs">
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Total Trainable Parameters</span>
               <span id="inspect-total-params" class="font-mono text-cyan-400 font-bold">0</span>
             </div>
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Context Window ($T$)</span>
               <span id="inspect-block-size" class="font-mono text-slate-200">32</span>
             </div>
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Embedding Dimension ($d_{model}$)</span>
               <span id="inspect-embed-dim" class="font-mono text-slate-200">32</span>
             </div>
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Attention Heads ($n_{head}$)</span>
               <span id="inspect-heads" class="font-mono text-slate-200">4</span>
             </div>
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Transformer Layers ($n_{layer}$)</span>
               <span id="inspect-layers" class="font-mono text-slate-200">2</span>
             </div>
-            <div class="flex justify-between py-2 border-b border-slate-800">
+            <div class="flex justify-between py-2 border-b border-slate-800/80">
               <span class="text-slate-400">Vocabulary Size ($V$)</span>
               <span id="inspect-vocab-size" class="font-mono text-slate-200">0</span>
             </div>
@@ -465,21 +482,21 @@
 
       <!-- Layer Breakdown Table -->
       <div class="lg:col-span-7 space-y-6">
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-layer-group text-cyan-400"></i> Layer Parameter Summary
           </h2>
 
           <div class="overflow-x-auto max-h-[350px]">
             <table class="w-full text-left text-xs font-mono">
-              <thead class="bg-slate-900 text-slate-400 uppercase">
+              <thead class="bg-slate-900/90 text-slate-400 uppercase">
                 <tr>
                   <th class="p-2.5">Layer Name</th>
                   <th class="p-2.5">Output Shape</th>
                   <th class="p-2.5">Param Count</th>
                 </tr>
               </thead>
-              <tbody id="layer-table-body" class="divide-y divide-slate-800 text-slate-300">
+              <tbody id="layer-table-body" class="divide-y divide-slate-800/80 text-slate-300">
                 <tr><td colspan="3" class="p-3 text-slate-500 text-center">// Model not initialized yet</td></tr>
               </tbody>
             </table>
@@ -491,21 +508,21 @@
 
     <!-- ==================== TAB 5: DATASET EDITOR ==================== -->
     <div id="tab-dataset" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
+      <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-database text-cyan-400"></i> Custom Training Corpus Editor
           </h2>
           <span class="text-xs text-slate-400">Paste or type any text to train a bespoke language model</span>
         </div>
 
-        <textarea id="custom-dataset-input" class="w-full h-80 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-300 focus:outline-none focus:border-cyan-500 leading-relaxed" placeholder="Type or paste custom text corpus here..."></textarea>
+        <textarea id="custom-dataset-input" class="w-full h-80 bg-slate-950/90 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 leading-relaxed shadow-inner" placeholder="Type or paste custom text corpus here..."></textarea>
 
         <div class="flex justify-between items-center">
-          <div class="text-xs text-slate-400">
+          <div class="text-xs text-slate-400 font-mono">
             <span>Character Count: <strong id="custom-char-count" class="text-slate-200">0</strong></span>
           </div>
-          <button onclick="applyCustomDataset()" class="py-2.5 px-6 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs shadow-lg transition-all flex items-center gap-2">
+          <button onclick="applyCustomDataset()" class="py-2.5 px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2">
             <i class="fa-solid fa-check"></i> Apply Custom Dataset
           </button>
         </div>
@@ -519,35 +536,35 @@
       <div class="lg:col-span-5 space-y-6">
 
         <!-- Storage Settings Panel -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-key text-cyan-400"></i> Local Storage Settings
           </h2>
 
-          <div class="space-y-3">
+          <div class="space-y-3.5">
             <div>
-              <label class="block text-xs text-slate-400 mb-1">Active Storage Target File</label>
-              <input type="text" id="storage-filename-input" value="llm_studio_backup.json" readonly class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs font-mono text-slate-300">
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Active Storage Target File</label>
+              <input type="text" id="storage-filename-input" value="midllm_backup.json" readonly class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs font-mono text-slate-300">
             </div>
 
-            <button id="select-file-btn" onclick="saveToDeviceFile(true)" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+            <button id="select-file-btn" onclick="saveToDeviceFile(true)" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-file-export"></i> Select / Bind Local File Handle
             </button>
           </div>
         </div>
 
         <!-- Auto-Backup Timer Panel -->
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-clock text-emerald-400"></i> Auto-Backup Status
           </h2>
 
           <div class="space-y-2 text-xs">
-            <div class="flex justify-between py-1 border-b border-slate-800">
+            <div class="flex justify-between py-1 border-b border-slate-800/80">
               <span class="text-slate-400">Auto-Backup Interval</span>
               <span class="font-mono text-cyan-400 font-bold">Every 5 Minutes</span>
             </div>
-            <div class="flex justify-between py-1 border-b border-slate-800">
+            <div class="flex justify-between py-1 border-b border-slate-800/80">
               <span class="text-slate-400">Next Automatic Backup In</span>
               <span id="timer-display" class="font-mono text-emerald-400 font-bold">05:00</span>
             </div>
@@ -558,10 +575,10 @@
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">
-            <button id="backup-now-btn" onclick="saveToDeviceFile(false)" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2">
+            <button id="backup-now-btn" onclick="saveToDeviceFile(false)" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-floppy-disk"></i> Backup Now
             </button>
-            <button id="restore-btn" onclick="restoreFromLocalStorage()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2">
+            <button id="restore-btn" onclick="restoreFromLocalStorage()" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-rotate-left"></i> Restore Latest
             </button>
           </div>
@@ -571,11 +588,11 @@
 
       <!-- Right Column: Storage Activity Console -->
       <div class="lg:col-span-7 space-y-6">
-        <div class="glass-panel rounded-xl p-5 border border-slate-800 space-y-3">
-          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-terminal text-cyan-400"></i> Local Storage Activity Console
           </h2>
-          <div id="storage-console-output" class="bg-slate-950 rounded-lg p-4 font-mono text-xs text-slate-300 h-80 overflow-y-auto border border-slate-800 leading-relaxed space-y-1">
+          <div id="storage-console-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-slate-300 h-80 overflow-y-auto border border-slate-800/80 leading-relaxed space-y-1 shadow-inner">
             <div class="text-slate-500">// Local backup logs and device storage status updates will stream here...</div>
           </div>
         </div>
@@ -962,7 +979,7 @@ The transformer architecture scales effectively across parallel compute infrastr
 
       updateModelInspectorInfo(blockSize, embedDim, heads, layers);
       updateStatus('Ready', 'bg-emerald-500');
-      logCheckpoint(`// Model initialized: d_model=${embedDim}, heads=${heads}, layers=${layers}, vocab=${vocabSize}`);
+      logCheckpoint(`// MidLLM Model initialized: d_model=${embedDim}, heads=${heads}, layers=${layers}, vocab=${vocabSize}`);
     }
 
     function updateModelInspectorInfo(blockSize, embedDim, heads, layers) {
@@ -1356,14 +1373,14 @@ The transformer architecture scales effectively across parallel compute infrastr
       const jsonString = JSON.stringify(data, null, 2);
 
       // Save synchronously to localStorage as immediate safety net
-      localStorage.setItem('llm_studio_local_backup', jsonString);
+      localStorage.setItem('midllm_local_backup', jsonString);
 
       if ('showSaveFilePicker' in window) {
         try {
           // Open file picker if no handle exists or explicitly requested
           if (!fileHandle || forcePicker) {
             fileHandle = await window.showSaveFilePicker({
-              suggestedName: 'llm_studio_backup.json',
+              suggestedName: 'midllm_backup.json',
               types: [{
                 description: 'JSON Backup File',
                 accept: { 'application/json': ['.json'] },
@@ -1409,7 +1426,7 @@ The transformer architecture scales effectively across parallel compute infrastr
       const url = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
-      downloadLink.download = 'llm_studio_backup.json';
+      downloadLink.download = 'midllm_backup.json';
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -1417,7 +1434,7 @@ The transformer architecture scales effectively across parallel compute infrastr
     }
 
     function restoreFromLocalStorage() {
-      const savedData = localStorage.getItem('llm_studio_local_backup');
+      const savedData = localStorage.getItem('midllm_local_backup') || localStorage.getItem('llm_studio_local_backup');
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
@@ -1493,7 +1510,7 @@ The transformer architecture scales effectively across parallel compute infrastr
     // Auto-save on page exit / unload
     window.addEventListener('beforeunload', (event) => {
       if (hasUnsavedChanges) {
-        localStorage.setItem('llm_studio_local_backup', JSON.stringify(getApplicationData()));
+        localStorage.setItem('midllm_local_backup', JSON.stringify(getApplicationData()));
         event.preventDefault();
         event.returnValue = '';
       }
@@ -1501,7 +1518,7 @@ The transformer architecture scales effectively across parallel compute infrastr
 
     window.addEventListener('pagehide', () => {
       if (hasUnsavedChanges) {
-        localStorage.setItem('llm_studio_local_backup', JSON.stringify(getApplicationData()));
+        localStorage.setItem('midllm_local_backup', JSON.stringify(getApplicationData()));
       }
     });
 
@@ -1540,10 +1557,10 @@ The transformer architecture scales effectively across parallel compute infrastr
       preprocessSelectedDataset();
 
       // Start device storage system & auto-backup timer
-      logStorageMessage('Device Storage initialized.', 'info');
+      logStorageMessage('MidLLM Device Storage initialized.', 'info');
       startAutoBackupTimer();
 
-      const savedData = localStorage.getItem('llm_studio_local_backup');
+      const savedData = localStorage.getItem('midllm_local_backup') || localStorage.getItem('llm_studio_local_backup');
       if (savedData) {
         logStorageMessage('Previous local backup session detected in browser storage.', 'info');
       }
