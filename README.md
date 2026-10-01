@@ -68,3 +68,7 @@ To leave your model training safely overnight without crashing, loss explosion, 
   * *Starting Loss:* `4.0` – `5.0` (random guessing)
   * *Trained Target:* `< 1.5` (learning structure, grammar, and vocabulary)
 * **Perplexity:** Measures character choice uncertainty ($e^{\text{loss}}$). A perplexity under `4.0` means the model is confidently picking accurate characters.
+
+---
+
+### This repository is made with the use of AI.
