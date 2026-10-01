@@ -3,609 +3,302 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MidLLM — In-Browser GPT Transformer Studio</title>
+  <title>MidLLM — GPT Transformer Studio</title>
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0fdf4',
-              500: '#22c55e',
-              600: '#16a34a',
-              900: '#14532d',
-            },
-            accent: {
-              400: '#38bdf8',
-              500: '#06b6d4',
-              600: '#0284c7',
-            }
-          },
-          fontFamily: {
-            mono: ['Fira Code', 'JetBrains Mono', 'ui-monospace', 'monospace'],
-            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
-          }
-        }
-      }
+      theme: { extend: { fontFamily: {
+        mono: ['Fira Code', 'JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'] } } }
     }
   </script>
-
-  <!-- TensorFlow.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
-
-  <!-- Chart.js Library -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- FontAwesome Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap">
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
-
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #090d16;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #334155;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
     .glass-panel {
       background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.07);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
-    .glass-panel:hover {
-      border-color: rgba(56, 189, 248, 0.2);
-    }
-    .glow-cyan {
-      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
-    }
-    .glow-purple {
-      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.3);
-    }
-    .pulse-dot {
-      animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-    }
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-      50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-      100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-    }
-    .bg-grid-pattern {
-      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 24px 24px;
-    }
+    .bg-grid-pattern { background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 24px 24px; }
+    .hm td { width: 22px; height: 22px; min-width: 22px; border: 1px solid #0f172a; cursor: pointer; }
+    .hm th { font-weight: 500; color: #64748b; font-size: 10px; padding: 0 2px; }
   </style>
 </head>
 
 <body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200 overflow-x-hidden bg-grid-pattern relative">
 
-  <!-- Background Ambient Glows -->
   <div class="fixed top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
   <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
   <!-- Header -->
   <header class="border-b border-slate-800/80 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-xl px-5 py-3.5 flex items-center justify-between shadow-2xl">
     <div class="flex items-center gap-3.5">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
         <i class="fa-solid fa-bolt text-white"></i>
       </div>
       <div>
         <h1 class="font-black text-xl leading-tight tracking-tight text-white flex items-center gap-2.5">
           MidLLM
-          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">TFJS WebGL/WebGPU</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">PyTorch train · TFJS inference</span>
         </h1>
-        <p class="text-xs text-slate-400 font-medium">Train & Inspect Decoder-Only GPT Models Live in JavaScript</p>
+        <p class="text-xs text-slate-400 font-medium">Train on a Colab GPU, then inspect and generate in the browser</p>
       </div>
     </div>
-
-    <!-- Header Actions & Status Badges -->
     <div class="flex items-center gap-3">
-      <div id="storage-status-badge" class="hidden sm:flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
-        <i class="fa-solid fa-hard-drive text-cyan-400"></i>
-        <span>Storage: <strong id="storage-status-text" class="text-emerald-400 font-semibold">Local Ready</strong></span>
-      </div>
-
-      <div id="backend-badge" class="hidden sm:flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
+      <div class="hidden sm:flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300">
         <i class="fa-solid fa-microchip text-indigo-400"></i>
         <span>Backend: <strong id="backend-type" class="text-white font-semibold">Detecting...</strong></span>
       </div>
-
-      <div id="status-badge" class="flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
+      <div class="flex items-center gap-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300">
         <span class="w-2 h-2 rounded-full bg-slate-500" id="status-dot"></span>
-        <span id="status-text" class="font-semibold tracking-wide">Idle</span>
+        <span id="status-text" class="font-semibold tracking-wide">No model</span>
       </div>
     </div>
   </header>
 
-  <!-- Navigation Tabs -->
-  <div class="border-b border-slate-800/80 bg-slate-900/40 px-5 flex gap-1 overflow-x-auto backdrop-blur-md">
-    <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active text-xs font-bold py-3.5 px-4 border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-chart-line text-sm"></i> Dashboard
-    </button>
-    <button onclick="switchTab('playground')" id="tab-btn-playground" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-comments text-sm"></i> Playground
-    </button>
-    <button onclick="switchTab('attention')" id="tab-btn-attention" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-border-all text-sm"></i> Attention Heatmap
-    </button>
-    <button onclick="switchTab('inspector')" id="tab-btn-inspector" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-cubes text-sm"></i> Model Inspector
-    </button>
-    <button onclick="switchTab('dataset')" id="tab-btn-dataset" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-database text-sm"></i> Dataset Editor
-    </button>
-    <button onclick="switchTab('storage')" id="tab-btn-storage" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
-      <i class="fa-solid fa-floppy-disk text-sm"></i> Backup & Storage
-    </button>
-  </div>
+  <!-- Tabs -->
+  <div id="tab-bar" class="border-b border-slate-800/80 bg-slate-900/40 px-5 flex gap-1 overflow-x-auto backdrop-blur-md"></div>
 
-  <!-- Main Container -->
   <main class="flex-1 p-4 lg:p-6 overflow-y-auto relative z-10">
 
-    <!-- ==================== TAB 1: DASHBOARD ==================== -->
-    <div id="tab-dashboard" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- ============ TAB: DASHBOARD ============ -->
+    <div id="tab-dashboard" class="tab-content">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-      <!-- Left Column: Controls & Hyperparameters -->
-      <div class="lg:col-span-4 space-y-6">
+        <div class="lg:col-span-4 space-y-6">
+          <div class="glass-panel rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-plug text-emerald-400"></i> Colab Trainer Connection</h2>
+            <p class="text-[11px] text-slate-500 leading-relaxed">Run <code class="text-cyan-400">train_midllm.py</code> in Colab once (no edits) and paste the connection code it prints.</p>
+            <input type="text" id="conn-code" placeholder="https://xxxx.trycloudflare.com#token" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-connect" onclick="connectTrainer()" class="py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 disabled:opacity-50"><i class="fa-solid fa-link"></i> Connect</button>
+              <button id="btn-disconnect" onclick="disconnectTrainer()" disabled class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl font-bold text-xs border border-slate-700/60 flex items-center justify-center gap-2 disabled:opacity-50"><i class="fa-solid fa-link-slash"></i> Disconnect</button>
+            </div>
+            <div id="conn-info" class="text-[11px] font-mono text-slate-400 break-words">Not connected.</div>
+          </div>
 
-        <!-- Dataset & Preset Selection -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-book text-cyan-400"></i> Training Dataset
-          </h2>
-          <div class="space-y-3.5">
-            <label class="block text-xs font-medium text-slate-400">Select Preset Corpus</label>
-            <select id="preset-select" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
+          <div class="glass-panel rounded-2xl p-5 space-y-3.5">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-play text-emerald-400"></i> Training Controls</h2>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="btn-train-start" onclick="startTraining()" disabled class="py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"><i class="fa-solid fa-play"></i> Start</button>
+              <button id="btn-train-pause" onclick="togglePause()" disabled class="py-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl font-bold text-xs border border-slate-700/60 flex items-center justify-center gap-1.5 disabled:opacity-40"><i class="fa-solid fa-pause"></i> Pause</button>
+              <button id="btn-train-stop" onclick="stopTraining()" disabled class="py-3 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"><i class="fa-solid fa-stop"></i> Stop</button>
+            </div>
+            <label class="flex items-start gap-2 text-xs text-slate-300"><input type="checkbox" id="opt-nonstop" class="mt-0.5 accent-cyan-400"><span><strong>Nonstop mode</strong> — ignore the step limit and train until you press Stop (overnight). Checkpoints are saved on Colab every 10 min.</span></label>
+            <label class="flex items-start gap-2 text-xs text-slate-300"><input type="checkbox" id="opt-continue" checked class="mt-0.5 accent-cyan-400"><span>Continue from the existing weights when the architecture and corpus characters match</span></label>
+            <label class="flex items-start gap-2 text-xs text-slate-300"><input type="checkbox" id="opt-keepawake" checked class="mt-0.5 accent-cyan-400"><span>Keep this computer awake while training (if the browser supports it)</span></label>
+            <div class="flex items-center gap-2 text-xs text-slate-400">Sync model to browser every
+              <select id="opt-sync-min" class="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-slate-200"><option>1</option><option>5</option><option selected>10</option><option>30</option><option>60</option></select> min</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-sync" onclick="syncModelNow(false)" disabled class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2 disabled:opacity-40"><i class="fa-solid fa-rotate text-cyan-400"></i> Sync Model Now</button>
+              <button id="btn-dl" onclick="downloadModelFile()" disabled class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2 disabled:opacity-40"><i class="fa-solid fa-download text-cyan-400"></i> Download .json</button>
+            </div>
+            <button onclick="bindModelFile()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2"><i class="fa-solid fa-file-export text-emerald-400"></i> Auto-save model to a file…</button>
+            <div id="autosave-info" class="text-[11px] font-mono text-slate-500">No auto-save file bound (Chrome/Edge only).</div>
+          </div>
+
+          <div class="glass-panel rounded-2xl p-5 space-y-3.5">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-book text-cyan-400"></i> Training Dataset</h2>
+            <select id="preset-select" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
               <option value="shakespeare">Tiny Shakespeare (Classic Drama)</option>
               <option value="python">Python Code Snippets (Algorithms)</option>
-              <option value="cybernetics">Philosophy & Cybernetics (Intelligence & Systems)</option>
-              <option value="quantum">AI & Quantum Physics (Scientific Explanations)</option>
+              <option value="cybernetics">Philosophy &amp; Cybernetics</option>
+              <option value="quantum">AI &amp; Quantum Physics</option>
             </select>
-            <div class="flex items-center justify-between text-xs text-slate-400 pt-1 font-mono">
-              <span>Vocab Size: <strong id="dataset-vocab-count" class="text-cyan-400">0</strong> chars</span>
-              <span>Total Tokens: <strong id="dataset-char-count" class="text-slate-200">0</strong></span>
+            <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Vocab: <strong id="dataset-vocab-count" class="text-cyan-400">0</strong> chars</span>
+              <span>Tokens: <strong id="dataset-char-count" class="text-slate-200">0</strong></span>
             </div>
-            <button onclick="preprocessSelectedDataset()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2 shadow-sm">
-              <i class="fa-solid fa-arrows-rotate text-cyan-400"></i> Re-Preprocess & Tokenize
+            <button onclick="preprocessSelectedDataset()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-arrows-rotate text-cyan-400"></i> Load Preset &amp; Tokenize
             </button>
+          </div>
+
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> Training Config</h2>
+            <p class="text-[11px] text-slate-500 leading-relaxed">These settings are sent to the Colab trainer when you press Start. They also build the untrained preview model.</p>
+            <div id="hp-sliders" class="space-y-4"></div>
+            <div>
+              <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400 font-medium">Attention Heads</span></div>
+              <select id="param-heads" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2 text-xs text-slate-200">
+                <option>1</option><option>2</option><option selected>4</option><option>8</option>
+              </select>
+            </div>
+            <button onclick="buildPreviewModel()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-cube text-indigo-400"></i> Build Untrained Preview Model
+            </button>
+          </div>
+
+          <div class="glass-panel rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Load a Saved Model File</h2>
+            <p class="text-[11px] text-slate-500 leading-relaxed">Open a previously saved <code class="text-cyan-400">midllm_model.json</code>. During live training the model syncs automatically.</p>
+            <input type="file" id="model-file-input" accept=".json,application/json" class="hidden">
+            <button onclick="document.getElementById('model-file-input').click()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-import"></i> Import Trained Model
+            </button>
+            <div id="import-info" class="text-[11px] font-mono text-slate-400">No trained model loaded.</div>
           </div>
         </div>
 
-        <!-- Hyperparameter Studio -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-indigo-400"></i> Hyperparameter Studio
-          </h2>
-
-          <!-- Context Window (Block Size) -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Context Window ($T$ Block Size)</span>
-              <span id="val-block-size" class="font-mono text-cyan-400 font-bold">32</span>
-            </div>
-            <input type="range" id="param-block-size" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+        <div class="lg:col-span-8 space-y-6">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="glass-panel rounded-2xl p-4"><p class="text-xs text-slate-400 font-medium">Train Loss</p><p id="metric-loss" class="text-2xl font-mono font-black text-cyan-400 mt-1">--</p><span class="text-[10px] text-slate-500">Final cross-entropy</span></div>
+            <div class="glass-panel rounded-2xl p-4"><p class="text-xs text-slate-400 font-medium">Val Loss</p><p id="metric-val" class="text-2xl font-mono font-black text-amber-400 mt-1">--</p><span class="text-[10px] text-slate-500">Held-out text</span></div>
+            <div class="glass-panel rounded-2xl p-4"><p class="text-xs text-slate-400 font-medium">Perplexity</p><p id="metric-ppl" class="text-2xl font-mono font-black text-emerald-400 mt-1">--</p><span class="text-[10px] text-slate-500">exp(val loss)</span></div>
+            <div class="glass-panel rounded-2xl p-4"><p class="text-xs text-slate-400 font-medium">Steps Trained</p><p id="metric-steps" class="text-2xl font-mono font-black text-purple-400 mt-1">--</p><span id="metric-time" class="text-[10px] text-slate-500">Time: --</span></div>
           </div>
 
-          <!-- Embedding Dim -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Embedding Dim ($d_{model}$)</span>
-              <span id="val-embed-dim" class="font-mono text-cyan-400 font-bold">32</span>
-            </div>
-            <input type="range" id="param-embed-dim" min="16" max="128" step="16" value="32" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          <div class="glass-panel rounded-2xl p-5">
+            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2 mb-4"><i class="fa-solid fa-chart-area text-cyan-400"></i> Convergence Loss Curve</h3>
+            <div class="relative h-64 w-full"><canvas id="lossChart"></canvas></div>
           </div>
 
-          <!-- Attention Heads -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Attention Heads ($n_{head}$)</span>
-              <span id="val-heads" class="font-mono text-cyan-400 font-bold">4</span>
-            </div>
-            <input type="range" id="param-heads" min="1" max="8" step="1" value="4" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          <div class="glass-panel rounded-2xl p-5 space-y-3">
+            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-terminal text-emerald-400"></i> Checkpoint Samples &amp; Log</h3>
+            <div id="checkpoint-log" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-emerald-400 h-48 overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap"></div>
           </div>
-
-          <!-- Transformer Layers -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Transformer Layers ($n_{layer}$)</span>
-              <span id="val-layers" class="font-mono text-cyan-400 font-bold">2</span>
-            </div>
-            <input type="range" id="param-layers" min="1" max="4" step="1" value="2" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-          </div>
-
-          <!-- Batch Size -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Batch Size</span>
-              <span id="val-batch-size" class="font-mono text-cyan-400 font-bold">16</span>
-            </div>
-            <input type="range" id="param-batch-size" min="4" max="64" step="4" value="16" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-          </div>
-
-          <!-- Learning Rate -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Learning Rate ($\eta$)</span>
-              <span id="val-lr" class="font-mono text-cyan-400 font-bold">0.003</span>
-            </div>
-            <input type="range" id="param-lr" min="0.0005" max="0.01" step="0.0005" value="0.003" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-          </div>
-
-          <!-- Epochs -->
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Max Training Epochs</span>
-              <span id="val-epochs" class="font-mono text-cyan-400 font-bold">100</span>
-            </div>
-            <input type="range" id="param-epochs" min="10" max="500" step="10" value="100" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-          </div>
-
-          <button onclick="buildModelFromParams()" id="btn-initialize-model" class="w-full py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
-            <i class="fa-solid fa-cube"></i> Initialize Model Weights
-          </button>
         </div>
-
-        <!-- Training Execution Panel -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3.5">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-play text-emerald-400"></i> Execution Controls
-          </h2>
-          <div class="grid grid-cols-2 gap-3">
-            <button id="btn-train-start" onclick="startTraining()" class="py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
-              <i class="fa-solid fa-play"></i> Start
-            </button>
-            <button id="btn-train-pause" onclick="pauseTraining()" disabled class="py-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-700/60 disabled:opacity-50">
-              <i class="fa-solid fa-pause"></i> Pause
-            </button>
-          </div>
-          <button id="btn-train-stop" onclick="stopTraining()" disabled class="w-full py-2.5 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-            <i class="fa-solid fa-stop"></i> Reset & Clear Weights
-          </button>
-        </div>
-
       </div>
-
-      <!-- Right Column: Live Metrics, Chart & Checkpoints -->
-      <div class="lg:col-span-8 space-y-6">
-
-        <!-- Live Analytics Counters -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
-            <p class="text-xs text-slate-400 font-medium">Current Loss</p>
-            <p id="metric-loss" class="text-2xl font-mono font-black text-cyan-400 mt-1">--</p>
-            <span class="text-[10px] text-slate-500">Cross-Entropy Loss</span>
-          </div>
-          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
-            <p class="text-xs text-slate-400 font-medium">Perplexity</p>
-            <p id="metric-ppl" class="text-2xl font-mono font-black text-emerald-400 mt-1">--</p>
-            <span class="text-[10px] text-slate-500">Uncertainty Scale</span>
-          </div>
-          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
-            <p class="text-xs text-slate-400 font-medium">Epoch / Step</p>
-            <p id="metric-epoch" class="text-2xl font-mono font-black text-purple-400 mt-1">0 / 0</p>
-            <span id="metric-step-total" class="text-[10px] text-slate-500">Total Steps: 0</span>
-          </div>
-          <div class="glass-panel rounded-2xl p-4 border border-slate-800/80">
-            <p class="text-xs text-slate-400 font-medium">Training Speed</p>
-            <p id="metric-speed" class="text-2xl font-mono font-black text-amber-400 mt-1">0 tok/s</p>
-            <span id="metric-eta" class="text-[10px] text-slate-500">ETA: --</span>
-          </div>
-        </div>
-
-        <!-- Chart.js Real-time Loss Curve -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-chart-area text-cyan-400"></i> Convergence Loss Curve
-            </h3>
-            <span class="text-[11px] text-slate-400 font-mono">Updated per step</span>
-          </div>
-          <div class="relative h-64 w-full">
-            <canvas id="lossChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Live Text Checkpoint Generator -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-terminal text-emerald-400"></i> Real-time Checkpoint Samples
-            </h3>
-            <span class="text-[11px] text-slate-400 font-mono">Auto-samples every 10 epochs</span>
-          </div>
-          <div id="checkpoint-log" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-emerald-400 h-48 overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap shadow-inner">
-            <span class="text-slate-600">// MidLLM training checkpoints will stream here as weights optimize...</span>
-          </div>
-        </div>
-
-      </div>
-
     </div>
 
-    <!-- ==================== TAB 2: PLAYGROUND ==================== -->
-    <div id="tab-playground" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Sampling Config -->
-      <div class="lg:col-span-4 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-5">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-cyan-400"></i> Generation Parameters
-          </h2>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Temperature ($T$)</span>
-              <span id="val-temp" class="font-mono text-cyan-400 font-bold">0.8</span>
-            </div>
-            <input type="range" id="param-temp" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-            <p class="text-[10px] text-slate-500 mt-1">Higher = creative & diverse, Lower = focused & deterministic</p>
+    <!-- ============ TAB: PLAYGROUND ============ -->
+    <div id="tab-playground" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4">
+          <div class="glass-panel rounded-2xl p-5 space-y-5">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-sliders text-cyan-400"></i> Generation Parameters</h2>
+            <div id="gen-sliders" class="space-y-5"></div>
           </div>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Top-K Sampling</span>
-              <span id="val-topk" class="font-mono text-cyan-400 font-bold">10</span>
+        </div>
+        <div class="lg:col-span-8">
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Prompt &amp; Auto-Completion</h2>
+            <input type="text" id="prompt-input" value="To be, or not" placeholder="Type starting prompt..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
+            <div class="flex gap-3">
+              <button onclick="generateTextFromPrompt()" id="btn-generate-text" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 disabled:opacity-50"><i class="fa-solid fa-bolt"></i> Generate Stream</button>
+              <button onclick="stopGeneration()" id="btn-stop-text" disabled class="py-3 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 rounded-xl text-xs font-bold border border-slate-700/60 disabled:opacity-50"><i class="fa-solid fa-stop"></i></button>
             </div>
-            <input type="range" id="param-topk" min="1" max="50" step="1" value="10" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
-            <p class="text-[10px] text-slate-500 mt-1">Restricts sampling candidate set to Top-K tokens</p>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1.5">
-              <span class="text-slate-400 font-medium">Max Generated Tokens</span>
-              <span id="val-gen-tokens" class="font-mono text-cyan-400 font-bold">150</span>
-            </div>
-            <input type="range" id="param-gen-tokens" min="20" max="500" step="10" value="150" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+            <div id="generation-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-cyan-300 min-h-[220px] max-h-[400px] overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap"><span class="text-slate-600">// Generated completion will stream here...</span></div>
           </div>
         </div>
       </div>
-
-      <!-- Text Generator Workspace -->
-      <div class="lg:col-span-8 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Prompt & Auto-Completion
-          </h2>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1.5">Input Prompt String</label>
-            <input type="text" id="prompt-input" value="To be, or not" placeholder="Type starting prompt..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all">
-          </div>
-
-          <div class="flex gap-3">
-            <button onclick="generateTextFromPrompt()" id="btn-generate-text" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
-              <i class="fa-solid fa-bolt"></i> Generate Stream
-            </button>
-            <button onclick="stopGeneration()" id="btn-stop-text" disabled class="py-3 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 rounded-xl text-xs font-bold border border-slate-700/60 transition-all disabled:opacity-50">
-              <i class="fa-solid fa-stop"></i>
-            </button>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1.5">Streaming Model Output</label>
-            <div id="generation-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-cyan-300 min-h-[220px] max-h-[400px] overflow-y-auto border border-slate-800/80 leading-relaxed whitespace-pre-wrap shadow-inner">
-              <span class="text-slate-600">// Generated completion will stream here character by character...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
 
-    <!-- ==================== TAB 3: ATTENTION HEATMAP ==================== -->
-    <div id="tab-attention" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
+    <!-- ============ TAB: ATTENTION ============ -->
+    <div id="tab-attention" class="tab-content hidden">
+      <div class="glass-panel rounded-2xl p-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-border-all text-cyan-400"></i> Self-Attention Matrix Visualizer
-            </h2>
-            <p class="text-xs text-slate-400 mt-1">Visualizes causal attention weights ($Q \cdot K^T / \sqrt{d_k}$) during recent inference pass</p>
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-border-all text-cyan-400"></i> Self-Attention Matrix Visualizer</h2>
+            <p class="text-xs text-slate-400 mt-1">Causal attention weights softmax(Q·Kᵀ/√d_head) for the last generation pass. Rows = querying token, columns = attended token.</p>
           </div>
-
           <div class="flex items-center gap-3">
-            <label class="text-xs font-medium text-slate-400">Attention Head:</label>
-            <select id="attn-head-select" onchange="renderAttentionHeatmap()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
-              <option value="0">Head 0</option>
-            </select>
+            <label class="text-xs font-medium text-slate-400">Layer</label>
+            <select id="attn-layer-select" onchange="renderAttentionHeatmap()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200"></select>
+            <label class="text-xs font-medium text-slate-400">Head</label>
+            <select id="attn-head-select" onchange="renderAttentionHeatmap()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200"></select>
           </div>
         </div>
-
-        <!-- Heatmap Container -->
-        <div class="overflow-x-auto">
-          <div id="heatmap-grid-container" class="min-w-[500px] flex flex-col items-center justify-center p-4">
-            <p class="text-slate-500 text-xs">// Run text generation in Playground to compute & render self-attention weights</p>
-          </div>
-        </div>
-
-        <!-- Hover Tooltip Info -->
-        <div id="heatmap-info" class="mt-4 p-3.5 bg-slate-900/90 rounded-xl border border-slate-800/80 text-xs font-mono text-slate-400 flex justify-between shadow-inner">
-          <span>Target Token: <strong id="attn-target" class="text-cyan-400">--</strong></span>
-          <span>Context Token: <strong id="attn-source" class="text-emerald-400">--</strong></span>
-          <span>Attention Score: <strong id="attn-score" class="text-purple-400">--</strong></span>
+        <div class="overflow-auto max-h-[70vh]"><div id="heatmap-grid-container" class="flex flex-col items-start p-4"></div></div>
+        <div class="mt-4 p-3.5 bg-slate-900/90 rounded-xl border border-slate-800/80 text-xs font-mono text-slate-400 flex flex-wrap gap-x-8 gap-y-1">
+          <span>Query token: <strong id="attn-target" class="text-cyan-400">--</strong></span>
+          <span>Attends to: <strong id="attn-source" class="text-emerald-400">--</strong></span>
+          <span>Weight: <strong id="attn-score" class="text-purple-400">--</strong></span>
         </div>
       </div>
     </div>
 
-    <!-- ==================== TAB 4: MODEL INSPECTOR ==================== -->
-    <div id="tab-inspector" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Model Specs -->
-      <div class="lg:col-span-5 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-microchip text-emerald-400"></i> Model Specifications
-          </h2>
-          
-          <div class="space-y-2 text-xs">
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Total Trainable Parameters</span>
-              <span id="inspect-total-params" class="font-mono text-cyan-400 font-bold">0</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Context Window ($T$)</span>
-              <span id="inspect-block-size" class="font-mono text-slate-200">32</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Embedding Dimension ($d_{model}$)</span>
-              <span id="inspect-embed-dim" class="font-mono text-slate-200">32</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Attention Heads ($n_{head}$)</span>
-              <span id="inspect-heads" class="font-mono text-slate-200">4</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Transformer Layers ($n_{layer}$)</span>
-              <span id="inspect-layers" class="font-mono text-slate-200">2</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-slate-800/80">
-              <span class="text-slate-400">Vocabulary Size ($V$)</span>
-              <span id="inspect-vocab-size" class="font-mono text-slate-200">0</span>
+    <!-- ============ TAB: INSPECTOR ============ -->
+    <div id="tab-inspector" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5">
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-microchip text-emerald-400"></i> Model Specifications</h2>
+            <div id="inspect-specs" class="space-y-2 text-xs text-slate-500">// Model not initialized yet</div>
+          </div>
+        </div>
+        <div class="lg:col-span-7">
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-layer-group text-cyan-400"></i> Layer Parameter Summary</h2>
+            <div class="overflow-auto max-h-[350px]">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900/90 text-slate-400 uppercase"><tr><th class="p-2.5">Layer</th><th class="p-2.5">Output Shape</th><th class="p-2.5">Params</th></tr></thead>
+                <tbody id="layer-table-body" class="divide-y divide-slate-800/80 text-slate-300"></tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Layer Breakdown Table -->
-      <div class="lg:col-span-7 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-layer-group text-cyan-400"></i> Layer Parameter Summary
-          </h2>
-
-          <div class="overflow-x-auto max-h-[350px]">
-            <table class="w-full text-left text-xs font-mono">
-              <thead class="bg-slate-900/90 text-slate-400 uppercase">
-                <tr>
-                  <th class="p-2.5">Layer Name</th>
-                  <th class="p-2.5">Output Shape</th>
-                  <th class="p-2.5">Param Count</th>
-                </tr>
-              </thead>
-              <tbody id="layer-table-body" class="divide-y divide-slate-800/80 text-slate-300">
-                <tr><td colspan="3" class="p-3 text-slate-500 text-center">// Model not initialized yet</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
     </div>
 
-    <!-- ==================== TAB 5: DATASET EDITOR ==================== -->
-    <div id="tab-dataset" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+    <!-- ============ TAB: DATASET ============ -->
+    <div id="tab-dataset" class="tab-content hidden">
+      <div class="glass-panel rounded-2xl p-5 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-database text-cyan-400"></i> Custom Training Corpus Editor
-          </h2>
-          <span class="text-xs text-slate-400">Paste or type any text to train a bespoke language model</span>
+          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-database text-cyan-400"></i> Custom Training Corpus Editor</h2>
+          <span class="text-xs text-slate-400">Sent to the Colab trainer when you press Start</span>
         </div>
-
-        <textarea id="custom-dataset-input" class="w-full h-80 bg-slate-950/90 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 leading-relaxed shadow-inner" placeholder="Type or paste custom text corpus here..."></textarea>
-
+        <div class="flex items-center gap-3">
+          <input type="file" id="dataset-file-input" accept=".txt,.text,.md,.csv,.py,.js,.json,text/*" class="hidden">
+          <button onclick="document.getElementById('dataset-file-input').click()" class="py-2 px-4 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center gap-2"><i class="fa-solid fa-file-lines text-cyan-400"></i> Load text file…</button>
+          <span class="text-[11px] text-slate-500">Any UTF-8 text file. Press Start on the Dashboard to train on it.</span>
+        </div>
+        <textarea id="custom-dataset-input" class="w-full h-80 bg-slate-950/90 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 leading-relaxed" placeholder="Type or paste custom text corpus here..."></textarea>
         <div class="flex justify-between items-center">
-          <div class="text-xs text-slate-400 font-mono">
-            <span>Character Count: <strong id="custom-char-count" class="text-slate-200">0</strong></span>
-          </div>
-          <button onclick="applyCustomDataset()" class="py-2.5 px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2">
-            <i class="fa-solid fa-check"></i> Apply Custom Dataset
-          </button>
+          <span class="text-xs text-slate-400 font-mono">Characters: <strong id="custom-char-count" class="text-slate-200">0</strong></span>
+          <button onclick="applyCustomDataset()" class="py-2.5 px-6 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2"><i class="fa-solid fa-check"></i> Apply Custom Dataset</button>
         </div>
       </div>
     </div>
 
-    <!-- ==================== TAB 6: DEVICE STORAGE BACKUP ==================== -->
-    <div id="tab-storage" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Left Column: Local Storage Controls -->
-      <div class="lg:col-span-5 space-y-6">
-
-        <!-- Storage Settings Panel -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-key text-cyan-400"></i> Local Storage Settings
-          </h2>
-
-          <div class="space-y-3.5">
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">Active Storage Target File</label>
-              <input type="text" id="storage-filename-input" value="midllm_backup.json" readonly class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs font-mono text-slate-300">
+    <!-- ============ TAB: STORAGE ============ -->
+    <div id="tab-storage" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 space-y-6">
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-key text-cyan-400"></i> Backup File (corpus + config)</h2>
+            <input type="text" id="storage-filename-input" value="midllm_backup.json" readonly class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 text-xs font-mono text-slate-300">
+            <button onclick="saveToDeviceFile(true)" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"><i class="fa-solid fa-file-export"></i> Select / Bind Local File</button>
+            <p class="text-[11px] text-slate-500">Trained weights are saved separately: use the model auto-save file or Download in Training Controls.</p>
+          </div>
+          <div class="glass-panel rounded-2xl p-5 space-y-4">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-clock text-emerald-400"></i> Auto-Backup</h2>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between py-1 border-b border-slate-800/80"><span class="text-slate-400">Interval</span><span class="font-mono text-cyan-400 font-bold">Every 5 minutes (browser storage; also the bound file if set)</span></div>
+              <div class="flex justify-between py-1 border-b border-slate-800/80"><span class="text-slate-400">Next in</span><span id="timer-display" class="font-mono text-emerald-400 font-bold">05:00</span></div>
+              <div class="flex justify-between py-1"><span class="text-slate-400">Last backup</span><span id="last-backup-time" class="font-mono text-slate-300">Never</span></div>
             </div>
-
-            <button id="select-file-btn" onclick="saveToDeviceFile(true)" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
-              <i class="fa-solid fa-file-export"></i> Select / Bind Local File Handle
-            </button>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <button onclick="saveToDeviceFile(false)" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2"><i class="fa-solid fa-floppy-disk"></i> Backup Now</button>
+              <button onclick="restoreFromLocalStorage()" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-left"></i> Restore Latest</button>
+            </div>
           </div>
         </div>
-
-        <!-- Auto-Backup Timer Panel -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-clock text-emerald-400"></i> Auto-Backup Status
-          </h2>
-
-          <div class="space-y-2 text-xs">
-            <div class="flex justify-between py-1 border-b border-slate-800/80">
-              <span class="text-slate-400">Auto-Backup Interval</span>
-              <span class="font-mono text-cyan-400 font-bold">Every 5 Minutes</span>
-            </div>
-            <div class="flex justify-between py-1 border-b border-slate-800/80">
-              <span class="text-slate-400">Next Automatic Backup In</span>
-              <span id="timer-display" class="font-mono text-emerald-400 font-bold">05:00</span>
-            </div>
-            <div class="flex justify-between py-1">
-              <span class="text-slate-400">Last Backup Timestamp</span>
-              <span id="last-backup-time" class="font-mono text-slate-300">Never</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 pt-2">
-            <button id="backup-now-btn" onclick="saveToDeviceFile(false)" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk"></i> Backup Now
-            </button>
-            <button id="restore-btn" onclick="restoreFromLocalStorage()" class="py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-xs font-bold border border-slate-700/60 transition-all flex items-center justify-center gap-2">
-              <i class="fa-solid fa-rotate-left"></i> Restore Latest
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Right Column: Storage Activity Console -->
-      <div class="lg:col-span-7 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-terminal text-cyan-400"></i> Local Storage Activity Console
-          </h2>
-          <div id="storage-console-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-slate-300 h-80 overflow-y-auto border border-slate-800/80 leading-relaxed space-y-1 shadow-inner">
-            <div class="text-slate-500">// Local backup logs and device storage status updates will stream here...</div>
+        <div class="lg:col-span-7">
+          <div class="glass-panel rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-terminal text-cyan-400"></i> Activity Console</h2>
+            <div id="storage-console-output" class="bg-slate-950/90 rounded-xl p-4 font-mono text-xs text-slate-300 h-80 overflow-y-auto border border-slate-800/80 leading-relaxed space-y-1"></div>
           </div>
         </div>
       </div>
-
     </div>
-
   </main>
 
-  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
-    
-    // Preset Datasets
+    // ======================================================================
+    // Data
+    // ======================================================================
     const PRESETS = {
       shakespeare: `To be, or not to be, that is the question:
 Whether 'tis nobler in the mind to suffer
@@ -656,36 +349,29 @@ Attention mechanisms weigh relevant tokens in a sequence according to dot-produc
 The transformer architecture scales effectively across parallel compute infrastructure.`
     };
 
-    // Global State
+    // ======================================================================
+    // Global state
+    // ======================================================================
     let currentText = PRESETS.shakespeare;
-    let charToIdx = {};
-    let idxToChar = {};
-    let vocabSize = 0;
+    let charToIdx = {}, idxToChar = {}, vocabSize = 0;
     let model = null;
+    let modelConfig = null;      // {blockSize, embedDim, heads, layers} of the CURRENT model
+    let trainedInfo = null;      // set when a Colab-trained model is loaded
     let lossChart = null;
-
-    // Training State
-    let isTraining = false;
-    let isPaused = false;
-    let stopRequested = false;
+    let attnCache = null;        // {chars, layers: [layer][head][T][T]}
     let stopGenerationFlag = false;
+    let isGenerating = false;
 
-    // Training Metrics
-    let currentEpoch = 0;
-    let currentStep = 0;
-    let totalStepsCount = 0;
-    let lossHistory = [];
-
-    // Local Storage & Backup State
     let hasUnsavedChanges = false;
     let fileHandle = null;
     let countdownTimer = null;
-    let secondsRemaining = 300; // 5 minute auto-backup timer
+    let secondsRemaining = 300;
 
+    const $ = (id) => document.getElementById(id);
 
-    /**
-     * Custom Token + Positional Embedding Layer
-     */
+    // ======================================================================
+    // Custom TF.js layers (used for inference only)
+    // ======================================================================
     class TokenAndPositionEmbedding extends tf.layers.Layer {
       constructor(config) {
         super(config);
@@ -693,877 +379,926 @@ The transformer architecture scales effectively across parallel compute infrastr
         this.blockSize = config.blockSize;
         this.dModel = config.dModel;
       }
-
       build(inputShape) {
-        this.tokenEmbed = this.addWeight(
-          'token_embed',
-          [this.vocabSize, this.dModel],
-          'float32',
-          tf.initializers.randomNormal({ stddev: 0.02 })
-        );
-        this.posEmbed = this.addWeight(
-          'pos_embed',
-          [this.blockSize, this.dModel],
-          'float32',
-          tf.initializers.randomNormal({ stddev: 0.02 })
-        );
+        this.tokenEmbed = this.addWeight('token_embed', [this.vocabSize, this.dModel], 'float32', tf.initializers.randomNormal({ stddev: 0.02 }));
+        this.posEmbed = this.addWeight('pos_embed', [this.blockSize, this.dModel], 'float32', tf.initializers.randomNormal({ stddev: 0.02 }));
         super.build(inputShape);
       }
-
       call(inputs) {
         return tf.tidy(() => {
           const x = Array.isArray(inputs) ? inputs[0] : inputs;
-          const seqLen = x.shape[1] || this.blockSize;
-
-          // Lookup Token Embeddings: [B, T, D]
-          const tokEmb = tf.gather(this.tokenEmbed.read(), x);
-
-          // Lookup Positional Embeddings: [1, T, D]
-          const posIds = tf.range(0, seqLen, 1, 'int32').expandDims(0);
-          const posEmb = tf.gather(this.posEmbed.read(), posIds);
-
+          const T = x.shape[1];
+          const tokEmb = tf.gather(this.tokenEmbed.read(), x);                       // [B, T, D]
+          const posIds = tf.range(0, T, 1, 'int32').expandDims(0);
+          const posEmb = tf.gather(this.posEmbed.read(), posIds);                    // [1, T, D]
           return tokEmb.add(posEmb);
         });
       }
-
-      computeOutputShape(inputShape) {
-        return [inputShape[0], inputShape[1], this.dModel];
+      computeOutputShape(inputShape) { return [inputShape[0], inputShape[1], this.dModel]; }
+      getConfig() {
+        return Object.assign(super.getConfig(), { vocabSize: this.vocabSize, blockSize: this.blockSize, dModel: this.dModel });
       }
-
-      static get className() {
-        return 'TokenAndPositionEmbedding';
-      }
+      static get className() { return 'TokenAndPositionEmbedding'; }
     }
     tf.serialization.registerClass(TokenAndPositionEmbedding);
 
-    /**
-     * Custom Multi-Head Causal Self-Attention Layer
-     */
     class CausalSelfAttention extends tf.layers.Layer {
       constructor(config) {
         super(config);
         this.dModel = config.dModel;
         this.numHeads = config.numHeads;
-        this.headDim = Math.floor(config.dModel / config.numHeads);
+        if (this.dModel % this.numHeads !== 0) throw new Error(`d_model (${this.dModel}) must be divisible by heads (${this.numHeads})`);
+        this.headDim = this.dModel / this.numHeads;
+        this.capture = false;   // when true, keep the attention weights of the next forward pass
+        this.lastAttn = null;
       }
-
       build(inputShape) {
         const scale = 1 / Math.sqrt(this.dModel);
-        this.cAttn = this.addWeight(
-          'c_attn',
-          [this.dModel, 3 * this.dModel],
-          'float32',
-          tf.initializers.randomNormal({ stddev: scale })
-        );
-        this.cProj = this.addWeight(
-          'c_proj',
-          [this.dModel, this.dModel],
-          'float32',
-          tf.initializers.randomNormal({ stddev: scale })
-        );
+        this.cAttn = this.addWeight('c_attn', [this.dModel, 3 * this.dModel], 'float32', tf.initializers.randomNormal({ stddev: scale }));
+        this.cProj = this.addWeight('c_proj', [this.dModel, this.dModel], 'float32', tf.initializers.randomNormal({ stddev: scale }));
         super.build(inputShape);
       }
-
       call(inputs) {
         return tf.tidy(() => {
           const x = Array.isArray(inputs) ? inputs[0] : inputs;
-          const shape = x.shape;
-          const T = shape[1];
+          const T = x.shape[1];
+          const D = this.dModel, NH = this.numHeads, HD = this.headDim;
 
-          // Linear QKV projection: [B, T, 3 * dModel]
-          const qkv = tf.matMul(x.reshape([-1, this.dModel]), this.cAttn.read()).reshape([-1, T, 3 * this.dModel]);
-          const splitQkv = tf.split(qkv, 3, 2);
+          const qkv = tf.matMul(x.reshape([-1, D]), this.cAttn.read()).reshape([-1, T, 3 * D]);
+          const [q0, k0, v0] = tf.split(qkv, 3, 2);
+          const heads = (t) => t.reshape([-1, T, NH, HD]).transpose([0, 2, 1, 3]);      // [B, NH, T, HD]
+          const q = heads(q0), k = heads(k0), v = heads(v0);
 
-          const q = splitQkv[0].reshape([-1, T, this.numHeads, this.headDim]).transpose([0, 2, 1, 3]); // [B, NH, T, HD]
-          const k = splitQkv[1].reshape([-1, T, this.numHeads, this.headDim]).transpose([0, 2, 1, 3]); // [B, NH, T, HD]
-          const v = splitQkv[2].reshape([-1, T, this.numHeads, this.headDim]).transpose([0, 2, 1, 3]); // [B, NH, T, HD]
+          let att = tf.matMul(q, k, false, true).mul(1 / Math.sqrt(HD));               // [B, NH, T, T]
+          const mask = tf.scalar(1).sub(tf.linalg.bandPart(tf.ones([T, T]), -1, 0)).mul(-1e9);
+          const w = tf.softmax(att.add(mask), -1);
 
-          // Attention Scores: Q @ K^T / sqrt(headDim) -> [B, NH, T, T]
-          let att = tf.matMul(q, k, false, true).mul(1.0 / Math.sqrt(this.headDim));
-
-          // Causal Lower-Triangular Mask
-          const mask = tf.tidy(() => {
-            const ones = tf.ones([T, T]);
-            const tril = tf.linalg.bandPart(ones, -1, 0);
-            return tf.scalar(1.0).sub(tril).mul(-1e9);
-          });
-
-          att = att.add(mask);
-          const attWeights = tf.softmax(att, -1); // [B, NH, T, T]
-
-          // Cache last attention weights globally for inspector
-          if (window.lastAttnWeights) {
-            try { window.lastAttnWeights.dispose(); } catch(e){}
+          if (this.capture) {
+            if (this.lastAttn) this.lastAttn.dispose();
+            this.lastAttn = tf.keep(w.clone());
           }
-          window.lastAttnWeights = tf.keep(attWeights.clone());
 
-          // Context vector = Attention * V -> [B, NH, T, HD]
-          const y = tf.matMul(attWeights, v);
-          const yTransposed = y.transpose([0, 2, 1, 3]).reshape([-1, T, this.dModel]);
-
-          // Output projection
-          const out = tf.matMul(yTransposed.reshape([-1, this.dModel]), this.cProj.read()).reshape([-1, T, this.dModel]);
-          return out;
+          const y = tf.matMul(w, v).transpose([0, 2, 1, 3]).reshape([-1, D]);
+          return tf.matMul(y, this.cProj.read()).reshape([-1, T, D]);
         });
       }
-
-      computeOutputShape(inputShape) {
-        return inputShape;
-      }
-
-      static get className() {
-        return 'CausalSelfAttention';
-      }
+      computeOutputShape(inputShape) { return inputShape; }
+      getConfig() { return Object.assign(super.getConfig(), { dModel: this.dModel, numHeads: this.numHeads }); }
+      static get className() { return 'CausalSelfAttention'; }
     }
     tf.serialization.registerClass(CausalSelfAttention);
 
-
-    /**
-     * Build standard Decoder-Only GPT Model
-     */
-    function buildGPTModel(vocabSize, blockSize, dModel, numHeads, numLayers) {
+    function buildGPTModel(vocab, blockSize, dModel, numHeads, numLayers) {
       const inputs = tf.input({ shape: [blockSize], dtype: 'int32' });
-
-      // Embeddings
-      let x = new TokenAndPositionEmbedding({ vocabSize, blockSize, dModel }).apply(inputs);
-
-      // Transformer Decoder Stack
+      let x = new TokenAndPositionEmbedding({ vocabSize: vocab, blockSize, dModel }).apply(inputs);
       for (let i = 0; i < numLayers; i++) {
-        // Sub-block 1: Causal Self Attention + Residual
         const norm1 = tf.layers.layerNormalization({ epsilon: 1e-5 }).apply(x);
         const attn = new CausalSelfAttention({ dModel, numHeads }).apply(norm1);
         x = tf.layers.add().apply([x, attn]);
-
-        // Sub-block 2: Feed Forward + Residual
         const norm2 = tf.layers.layerNormalization({ epsilon: 1e-5 }).apply(x);
         const ffn1 = tf.layers.dense({ units: 4 * dModel, activation: 'relu' }).apply(norm2);
         const ffn2 = tf.layers.dense({ units: dModel }).apply(ffn1);
         x = tf.layers.add().apply([x, ffn2]);
       }
-
-      // Final Layer Normalization
       x = tf.layers.layerNormalization({ epsilon: 1e-5 }).apply(x);
-
-      // Projection to Vocab Space
-      const logits = tf.layers.dense({ units: vocabSize }).apply(x);
-
-      const m = tf.model({ inputs, outputs: logits });
-      return m;
+      const logits = tf.layers.dense({ units: vocab }).apply(x);
+      return tf.model({ inputs, outputs: logits });
     }
 
-
-    function initChart() {
-      const ctx = document.getElementById('lossChart').getContext('2d');
-      lossChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Cross-Entropy Loss',
-            data: [],
-            borderColor: '#38bdf8',
-            backgroundColor: 'rgba(56, 189, 248, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.3,
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          scales: {
-            x: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#64748b', font: { size: 10 } }
-            },
-            y: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#64748b', font: { size: 10 } }
-            }
-          },
-          plugins: {
-            legend: { display: false }
-          }
-        }
-      });
-    }
-
-    function updateChart(step, loss) {
-      if (!lossChart) return;
-      lossChart.data.labels.push(step);
-      lossChart.data.datasets[0].data.push(loss);
-      if (lossChart.data.labels.length > 100) {
-        lossChart.data.labels.shift();
-        lossChart.data.datasets[0].data.shift();
-      }
-      lossChart.update('none');
-    }
-
-
-    function preprocessSelectedDataset() {
-      const presetKey = document.getElementById('preset-select').value;
-      currentText = PRESETS[presetKey] || PRESETS.shakespeare;
-      document.getElementById('custom-dataset-input').value = currentText;
-      processTextCorpus(currentText);
-    }
-
-    function processTextCorpus(text) {
-      const chars = Array.from(new Set(text)).sort();
-      vocabSize = chars.length;
-
-      charToIdx = {};
-      idxToChar = {};
-      chars.forEach((c, i) => {
-        charToIdx[c] = i;
-        idxToChar[i] = c;
-      });
-
-      document.getElementById('dataset-vocab-count').innerText = vocabSize;
-      document.getElementById('dataset-char-count').innerText = text.length;
-      document.getElementById('custom-char-count').innerText = text.length;
-
-      // Mark changes for auto-backup
-      hasUnsavedChanges = true;
-
-      // Automatically initialize model when dataset changes
-      buildModelFromParams();
-    }
-
-    function prepareDatasetBatches(text, blockSize, batchSize) {
-      const encoded = Array.from(text).map(c => charToIdx[c] !== undefined ? charToIdx[c] : 0);
-      const numSamples = encoded.length - blockSize;
-
-      const samplesX = [];
-      const samplesY = [];
-
-      for (let i = 0; i < numSamples; i++) {
-        samplesX.push(encoded.slice(i, i + blockSize));
-        samplesY.push(encoded.slice(i + 1, i + 1 + blockSize));
-      }
-
-      // Shuffle indices
-      const indices = Array.from({ length: samplesX.length }, (_, i) => i);
-      tf.util.shuffle(indices);
-
-      const batches = [];
-      for (let i = 0; i < indices.length; i += batchSize) {
-        const batchIdxs = indices.slice(i, i + batchSize);
-        if (batchIdxs.length < batchSize) continue;
-
-        const batchX = batchIdxs.map(idx => samplesX[idx]);
-        const batchY = batchIdxs.map(idx => samplesY[idx]);
-
-        batches.push({
-          x: tf.tensor2d(batchX, [batchSize, blockSize], 'int32'),
-          y: tf.tensor2d(batchY, [batchSize, blockSize], 'int32')
-        });
-      }
-
-      return batches;
-    }
-
-
-    function buildModelFromParams() {
-      const blockSize = parseInt(document.getElementById('param-block-size').value);
-      const embedDim = parseInt(document.getElementById('param-embed-dim').value);
-      const heads = parseInt(document.getElementById('param-heads').value);
-      const layers = parseInt(document.getElementById('param-layers').value);
-
+    function disposeModel() {
       if (model) {
+        model.layers.forEach(l => { if (l instanceof CausalSelfAttention && l.lastAttn) l.lastAttn.dispose(); });
         model.dispose();
       }
-
-      model = buildGPTModel(vocabSize, blockSize, embedDim, heads, layers);
-
-      updateModelInspectorInfo(blockSize, embedDim, heads, layers);
-      updateStatus('Ready', 'bg-emerald-500');
-      logCheckpoint(`// MidLLM Model initialized: d_model=${embedDim}, heads=${heads}, layers=${layers}, vocab=${vocabSize}`);
+      model = null;
+      attnCache = null;
     }
 
-    function updateModelInspectorInfo(blockSize, embedDim, heads, layers) {
-      document.getElementById('inspect-block-size').innerText = blockSize;
-      document.getElementById('inspect-embed-dim').innerText = embedDim;
-      document.getElementById('inspect-heads').innerText = heads;
-      document.getElementById('inspect-layers').innerText = layers;
-      document.getElementById('inspect-vocab-size').innerText = vocabSize;
-
-      let totalParams = 0;
-      const tableBody = document.getElementById('layer-table-body');
-      tableBody.innerHTML = '';
-
-      model.layers.forEach(layer => {
-        let params = 0;
-        layer.getWeights().forEach(w => {
-          params += w.shape.reduce((a, b) => a * b, 1);
-        });
-        totalParams += params;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="p-2.5 text-cyan-400">${layer.name}</td>
-          <td class="p-2.5 text-slate-400">${JSON.stringify(layer.outputShape)}</td>
-          <td class="p-2.5 text-emerald-400 font-bold">${params.toLocaleString()}</td>
-        `;
-        tableBody.appendChild(row);
-      });
-
-      document.getElementById('inspect-total-params').innerText = totalParams.toLocaleString();
-
-      // Configure attention head selector dropdown
-      const attnSelect = document.getElementById('attn-head-select');
-      attnSelect.innerHTML = '';
-      for (let h = 0; h < heads; h++) {
-        const opt = document.createElement('option');
-        opt.value = h;
-        opt.innerText = `Head ${h}`;
-        attnSelect.appendChild(opt);
-      }
-    }
-
-
-    async function startTraining() {
-      if (isTraining && isPaused) {
-        isPaused = false;
-        updateStatus('Training', 'bg-emerald-500 pulse-dot');
-        setControlsState(true);
-        return;
-      }
-
-      if (!model) buildModelFromParams();
-
-      isTraining = true;
-      isPaused = false;
-      stopRequested = false;
-
-      setControlsState(true);
-      updateStatus('Training', 'bg-emerald-500 pulse-dot');
-
-      const blockSize = parseInt(document.getElementById('param-block-size').value);
-      const batchSize = parseInt(document.getElementById('param-batch-size').value);
-      const lr = parseFloat(document.getElementById('param-lr').value);
-      const maxEpochs = parseInt(document.getElementById('param-epochs').value);
-
-      const optimizer = tf.train.adam(lr);
-      const batches = prepareDatasetBatches(currentText, blockSize, batchSize);
-
-      if (batches.length === 0) {
-        alert('Dataset is too short for the chosen context window and batch size!');
-        stopTraining();
-        return;
-      }
-
-      let startTime = Date.now();
-      let totalProcessedTokens = 0;
-
-      for (let epoch = currentEpoch; epoch < maxEpochs; epoch++) {
-        currentEpoch = epoch + 1;
-
-        for (let b = 0; b < batches.length; b++) {
-          if (stopRequested) break;
-
-          while (isPaused) {
-            await new Promise(r => setTimeout(r, 200));
-            if (stopRequested) break;
-          }
-
-          const batch = batches[b];
-
-          // Compute loss and step optimizer
-          const lossVal = optimizer.minimize(() => {
-            const logits = model.apply(batch.x, { training: true });
-            const targetsOneHot = tf.oneHot(batch.y, vocabSize);
-            return tf.losses.softmaxCrossEntropy(targetsOneHot, logits);
-          }, true);
-
-          const lossNum = lossVal.dataSync()[0];
-          lossVal.dispose();
-
-          currentStep++;
-          totalStepsCount++;
-          totalProcessedTokens += batchSize * blockSize;
-          lossHistory.push(lossNum);
-          hasUnsavedChanges = true;
-
-          // Performance stats
-          const elapsedSec = (Date.now() - startTime) / 1000;
-          const tokensPerSec = Math.round(totalProcessedTokens / Math.max(elapsedSec, 0.1));
-
-          // Metrics update
-          const ppl = Math.exp(Math.min(lossNum, 20)).toFixed(2);
-          document.getElementById('metric-loss').innerText = lossNum.toFixed(4);
-          document.getElementById('metric-ppl').innerText = ppl;
-          document.getElementById('metric-epoch').innerText = `${currentEpoch} / ${maxEpochs}`;
-          document.getElementById('metric-step-total').innerText = `Step: ${currentStep}`;
-          document.getElementById('metric-speed').innerText = `${tokensPerSec} tok/s`;
-
-          updateChart(currentStep, lossNum);
-
-          // Yield UI thread
-          await tf.nextFrame();
-        }
-
-        // Intermittent text sampling checkpoint
-        if ((epoch + 1) % 10 === 0 || epoch === 0) {
-          const sample = await generateSampleCheckpoint(blockSize);
-          logCheckpoint(`[Epoch ${epoch + 1}/${maxEpochs}] Loss: ${document.getElementById('metric-loss').innerText} | Sample: "${sample}"`);
-        }
-
-        if (stopRequested) break;
-      }
-
-      // Cleanup batches
-      batches.forEach(b => {
-        b.x.dispose();
-        b.y.dispose();
-      });
-
-      isTraining = false;
-      setControlsState(false);
-      updateStatus('Completed', 'bg-cyan-400');
-    }
-
-    function pauseTraining() {
-      if (isTraining) {
-        isPaused = true;
-        updateStatus('Paused', 'bg-amber-400');
-        document.getElementById('btn-train-start').disabled = false;
-        document.getElementById('btn-train-pause').disabled = true;
-      }
-    }
-
-    function stopTraining() {
-      stopRequested = true;
-      isTraining = false;
-      isPaused = false;
-      currentEpoch = 0;
-      currentStep = 0;
-
-      setControlsState(false);
-      updateStatus('Idle', 'bg-slate-500');
-    }
-
-    function setControlsState(training) {
-      document.getElementById('btn-train-start').disabled = training && !isPaused;
-      document.getElementById('btn-train-pause').disabled = !training || isPaused;
-      document.getElementById('btn-train-stop').disabled = !training && currentEpoch === 0;
-      document.getElementById('btn-initialize-model').disabled = training;
-    }
-
-
-    async function generateSampleCheckpoint(blockSize) {
-      return tf.tidy(() => {
-        const seedText = currentText.substring(0, Math.min(10, currentText.length));
-        let tokens = Array.from(seedText).map(c => charToIdx[c] || 0);
-
-        for (let i = 0; i < 30; i++) {
-          const ctx = tokens.slice(-blockSize);
-          const padded = ctx.length < blockSize 
-            ? Array(blockSize - ctx.length).fill(0).concat(ctx)
-            : ctx;
-
-          const inputTensor = tf.tensor2d([padded], [1, blockSize], 'int32');
-          const logits = model.predict(inputTensor);
-          const lastLogits = logits.slice([0, ctx.length - 1, 0], [1, 1, vocabSize]).reshape([vocabSize]);
-
-          const sampledIdx = tf.multinomial(tf.softmax(lastLogits), 1).dataSync()[0];
-          tokens.push(sampledIdx);
-        }
-
-        return tokens.map(t => idxToChar[t] || '').join('');
-      });
-    }
-
-    async function generateTextFromPrompt() {
-      if (!model) {
-        alert('Please initialize or train a model first!');
-        return;
-      }
-
-      const promptText = document.getElementById('prompt-input').value || 'To be';
-      const maxTokens = parseInt(document.getElementById('param-gen-tokens').value);
-      const temperature = parseFloat(document.getElementById('param-temp').value);
-      const topK = parseInt(document.getElementById('param-topk').value);
-      const blockSize = parseInt(document.getElementById('param-block-size').value);
-
-      const outputElem = document.getElementById('generation-output');
-      outputElem.innerText = promptText;
-
-      document.getElementById('btn-generate-text').disabled = true;
-      document.getElementById('btn-stop-text').disabled = false;
-      stopGenerationFlag = false;
-
-      let currentSequence = Array.from(promptText).map(c => charToIdx[c] !== undefined ? charToIdx[c] : 0);
-      if (currentSequence.length === 0) currentSequence = [0];
-
-      let generatedFull = promptText;
-
-      for (let i = 0; i < maxTokens; i++) {
-        if (stopGenerationFlag) break;
-
-        const ctx = currentSequence.slice(-blockSize);
-        const padded = ctx.length < blockSize 
-          ? Array(blockSize - ctx.length).fill(0).concat(ctx)
-          : ctx;
-
-        const nextTokenId = tf.tidy(() => {
-          const inputTensor = tf.tensor2d([padded], [1, blockSize], 'int32');
-          const logits = model.predict(inputTensor);
-          const lastLogits = logits.slice([0, ctx.length - 1, 0], [1, 1, vocabSize]).reshape([vocabSize]);
-
-          const scaledLogits = lastLogits.div(tf.scalar(temperature));
-          const { values, indices } = tf.topk(scaledLogits, Math.min(topK, vocabSize));
-          const probs = tf.softmax(values);
-
-          const sampledLocalIdx = tf.multinomial(probs, 1).dataSync()[0];
-          return indices.dataSync()[sampledLocalIdx];
-        });
-
-        currentSequence.push(nextTokenId);
-        const char = idxToChar[nextTokenId] || '';
-        generatedFull += char;
-
-        outputElem.innerText = generatedFull;
-        outputElem.scrollTop = outputElem.scrollHeight;
-
-        await tf.nextFrame();
-      }
-
-      document.getElementById('btn-generate-text').disabled = false;
-      document.getElementById('btn-stop-text').disabled = true;
-
-      // Render attention weights after inference
-      renderAttentionHeatmap();
-    }
-
-    function stopGeneration() {
-      stopGenerationFlag = true;
-    }
-
-
-    function renderAttentionHeatmap() {
-      const container = document.getElementById('heatmap-grid-container');
-      if (!window.lastAttnWeights) {
-        container.innerHTML = '<p class="text-slate-500 text-xs">// Run text generation in Playground to view attention matrix</p>';
-        return;
-      }
-
-      const headIdx = parseInt(document.getElementById('attn-head-select').value) || 0;
-
-      // Tensor shape: [1, numHeads, seqLen, seqLen]
-      const attnData = window.lastAttnWeights.arraySync()[0][headIdx];
-      const seqLen = attnData.length;
-
-      container.innerHTML = '';
-      const table = document.createElement('table');
-      table.className = 'border-collapse text-[10px] font-mono';
-
-      for (let r = 0; r < seqLen; r++) {
-        const tr = document.createElement('tr');
-        for (let c = 0; c < seqLen; c++) {
-          const td = document.createElement('td');
-          const score = attnData[r][c];
-
-          td.className = 'w-6 h-6 text-center border border-slate-900 cursor-pointer transition-all hover:scale-125 hover:z-10';
-          td.style.backgroundColor = `rgba(56, 189, 248, ${Math.min(score * 1.5, 1)})`;
-
-          td.onmouseenter = () => {
-            document.getElementById('attn-target').innerText = `Step ${r}`;
-            document.getElementById('attn-source').innerText = `Step ${c}`;
-            document.getElementById('attn-score').innerText = score.toFixed(4);
-          };
-
-          tr.appendChild(td);
-        }
-        table.appendChild(tr);
-      }
-
-      container.appendChild(table);
-    }
-
-
-    function applyCustomDataset() {
-      const text = document.getElementById('custom-dataset-input').value;
-      if (text.length < 50) {
-        alert('Please enter at least 50 characters of text.');
-        return;
-      }
-      currentText = text;
-      processTextCorpus(currentText);
-      switchTab('dashboard');
+    // ======================================================================
+    // UI helpers
+    // ======================================================================
+    const TABS = [
+      ['dashboard', 'fa-chart-line', 'Dashboard'], ['playground', 'fa-comments', 'Playground'],
+      ['attention', 'fa-border-all', 'Attention Heatmap'], ['inspector', 'fa-cubes', 'Model Inspector'],
+      ['dataset', 'fa-database', 'Dataset Editor'], ['storage', 'fa-floppy-disk', 'Backup & Storage']
+    ];
+
+    function buildTabs() {
+      $('tab-bar').innerHTML = TABS.map(([id, icon, label]) =>
+        `<button onclick="switchTab('${id}')" id="tab-btn-${id}" class="tab-btn text-xs font-bold py-3.5 px-4 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all"><i class="fa-solid ${icon} text-sm"></i> ${label}</button>`
+      ).join('');
     }
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('active', 'border-cyan-400', 'text-cyan-400');
+        el.classList.remove('border-cyan-400', 'text-cyan-400');
         el.classList.add('border-transparent', 'text-slate-400');
       });
+      $(`tab-${tabId}`).classList.remove('hidden');
+      const btn = $(`tab-btn-${tabId}`);
+      btn.classList.add('border-cyan-400', 'text-cyan-400');
+      btn.classList.remove('border-transparent', 'text-slate-400');
+      if (tabId === 'attention') renderAttentionHeatmap();
+    }
 
-      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-      activeBtn.classList.add('active', 'border-cyan-400', 'text-cyan-400');
-      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+    function sliderRow(id, label, min, max, step, value) {
+      return `<div>
+        <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400 font-medium">${label}</span><span id="val-${id}" class="font-mono text-cyan-400 font-bold">${value}</span></div>
+        <input type="range" id="param-${id}" min="${min}" max="${max}" step="${step}" value="${value}" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer"></div>`;
     }
 
     function updateStatus(text, dotClass) {
-      document.getElementById('status-text').innerText = text;
-      const dot = document.getElementById('status-dot');
-      dot.className = `w-2 h-2 rounded-full ${dotClass}`;
+      $('status-text').textContent = text;
+      $('status-dot').className = `w-2 h-2 rounded-full ${dotClass}`;
     }
 
     function logCheckpoint(msg) {
-      const log = document.getElementById('checkpoint-log');
-      log.innerText += `\n${msg}`;
+      const log = $('checkpoint-log');
+      const div = document.createElement('div');
+      div.textContent = msg;
+      log.appendChild(div);
       log.scrollTop = log.scrollHeight;
     }
 
+    function setSlider(id, value) {
+      const el = $(id);
+      if (!el || value === undefined || value === null) return;
+      el.value = value;
+      el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input'));
+    }
 
-    // ==========================================================
-    // LOCAL DEVICE STORAGE & AUTO-BACKUP LOGIC
-    // ==========================================================
+    function readHyperparams() {
+      return {
+        blockSize: parseInt($('param-block-size').value),
+        embedDim: parseInt($('param-embed-dim').value),
+        heads: parseInt($('param-heads').value),
+        layers: parseInt($('param-layers').value),
+        batchSize: parseInt($('param-batch-size').value),
+        lr: parseFloat($('param-lr').value),
+        maxSteps: parseInt($('param-max-steps').value)
+      };
+    }
 
+    function confirmDiscardTrained() {
+      return !trainedInfo || confirm('This replaces the imported trained model with an untrained one. Continue?');
+    }
+
+    // ======================================================================
+    // Dataset / tokenizer / model lifecycle
+    // ======================================================================
+    function preprocessSelectedDataset() {
+      if (!confirmDiscardTrained()) return;
+      currentText = PRESETS[$('preset-select').value] || PRESETS.shakespeare;
+      $('custom-dataset-input').value = currentText;
+      processTextCorpus(currentText);
+    }
+
+    function setVocab(chars) {
+      charToIdx = {}; idxToChar = {};
+      chars.forEach((c, i) => { charToIdx[c] = i; idxToChar[i] = c; });
+      vocabSize = chars.length;
+      $('dataset-vocab-count').textContent = vocabSize;
+      $('dataset-char-count').textContent = currentText.length;
+      $('custom-char-count').textContent = currentText.length;
+    }
+
+    function processTextCorpus(text) {
+      setVocab(Array.from(new Set(text)).sort());
+      hasUnsavedChanges = true;
+      buildPreviewModel(true);
+    }
+
+    function clearTrainedState() {
+      trainedInfo = null;
+      $('import-info').textContent = 'No trained model loaded.';
+      ['metric-loss', 'metric-val', 'metric-ppl', 'metric-steps'].forEach(id => $(id).textContent = '--');
+      $('metric-time').textContent = 'Time: --';
+      renderHistory([]);
+    }
+
+    function buildPreviewModel(skipConfirm = false) {
+      if (!skipConfirm && !confirmDiscardTrained()) return;
+      const hp = readHyperparams();
+      if (vocabSize === 0) return;
+      let m;
+      try {
+        m = buildGPTModel(vocabSize, hp.blockSize, hp.embedDim, hp.heads, hp.layers);
+      } catch (e) {
+        alert('Cannot build model: ' + e.message);
+        return;
+      }
+      clearTrainedState();
+      disposeModel();
+      installModel(m, { blockSize: hp.blockSize, embedDim: hp.embedDim, heads: hp.heads, layers: hp.layers });
+      updateStatus('Untrained preview', 'bg-amber-400');
+      logCheckpoint(`// Untrained model built: d_model=${hp.embedDim}, heads=${hp.heads}, layers=${hp.layers}, block=${hp.blockSize}, vocab=${vocabSize}`);
+    }
+
+    function installModel(m, cfg) {
+      model = m;
+      modelConfig = cfg;
+      attnCache = null;
+      updateModelInspectorInfo();
+      renderAttentionHeatmap();
+    }
+
+    function updateModelInspectorInfo() {
+      const c = modelConfig;
+      const rows = [
+        ['Total Trainable Parameters', model.countParams().toLocaleString()],
+        ['Context Window (T)', c.blockSize], ['Embedding Dimension (d_model)', c.embedDim],
+        ['Attention Heads', c.heads], ['Transformer Layers', c.layers], ['Vocabulary Size (V)', vocabSize],
+        ['Weights', trainedInfo ? 'Trained (PyTorch/Colab)' : 'Random (untrained)']
+      ];
+      $('inspect-specs').innerHTML = rows.map(([k, v], i) =>
+        `<div class="flex justify-between py-2 ${i < rows.length - 1 ? 'border-b border-slate-800/80' : ''}"><span class="text-slate-400">${k}</span><span class="font-mono ${i === 0 ? 'text-cyan-400 font-bold' : 'text-slate-200'}">${v}</span></div>`
+      ).join('');
+
+      const body = $('layer-table-body');
+      body.innerHTML = '';
+      model.layers.forEach(layer => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-2.5 text-cyan-400">${layer.name}</td><td class="p-2.5 text-slate-400">${JSON.stringify(layer.outputShape)}</td><td class="p-2.5 text-emerald-400 font-bold">${layer.countParams().toLocaleString()}</td>`;
+        body.appendChild(tr);
+      });
+
+      $('attn-layer-select').innerHTML = Array.from({ length: c.layers }, (_, i) => `<option value="${i}">Layer ${i}</option>`).join('');
+      $('attn-head-select').innerHTML = Array.from({ length: c.heads }, (_, i) => `<option value="${i}">Head ${i}</option>`).join('');
+    }
+
+    // ======================================================================
+    // Import of a model trained with train_midllm.py
+    // ======================================================================
+    function decodeF32(b64) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Float32Array(bytes.buffer);   // little-endian, same as every browser platform
+    }
+
+    function loadWeightsInto(m, list) {
+      let k = 0;
+      for (const layer of m.layers) {
+        const cur = layer.getWeights();          // only used to read shapes (not disposed)
+        if (cur.length === 0) continue;
+        const next = [];
+        try {
+          for (const w of cur) {
+            const e = list[k++];
+            if (!e) throw new Error('weight file has too few tensors');
+            if (e.shape.join('x') !== w.shape.join('x')) {
+              throw new Error(`shape mismatch at "${e.name}": file ${JSON.stringify(e.shape)} vs model ${JSON.stringify(w.shape)}`);
+            }
+            next.push(tf.tensor(decodeF32(e.data), e.shape, 'float32'));
+          }
+          layer.setWeights(next);
+        } finally {
+          next.forEach(t => t.dispose());
+        }
+      }
+      if (k !== list.length) throw new Error(`weight file has ${list.length} tensors, model uses ${k}`);
+    }
+
+    async function verifyImport(m, check, vocab) {
+      const out = tf.tidy(() => {
+        const logits = m.predict(tf.tensor2d([check.ids], [1, check.ids.length], 'int32'));
+        return logits.slice([0, check.ids.length - 1, 0], [1, 1, vocab]).reshape([vocab]);
+      });
+      const got = await out.data();
+      out.dispose();
+      let maxDiff = 0;
+      for (let i = 0; i < vocab; i++) maxDiff = Math.max(maxDiff, Math.abs(got[i] - check.logits[i]));
+      return maxDiff;
+    }
+
+    async function importTrainedModel(file) {
+      let obj;
+      try { obj = JSON.parse(await file.text()); } catch (e) { alert('Import failed: not a valid JSON file.'); return false; }
+      return importTrainedObject(obj, file.name, false);
+    }
+
+    // quiet = background sync from the live trainer (no alerts, no status/log spam)
+    async function importTrainedObject(obj, label, quiet) {
+      let newModel = null;
+      try {
+        if (!quiet) updateStatus('Importing...', 'bg-amber-400');
+        if (obj.format !== 'midllm-pytorch-v1') throw new Error('Not a MidLLM model file (expected format "midllm-pytorch-v1").');
+        const c = obj.config;
+        if (!Array.isArray(obj.chars) || obj.chars.length !== c.vocabSize) throw new Error('Vocabulary in the file does not match vocabSize.');
+        newModel = buildGPTModel(c.vocabSize, c.blockSize, c.embedDim, c.heads, c.layers);
+        loadWeightsInto(newModel, obj.weights);
+
+        let diffMsg = 'no reference check in file';
+        if (obj.check) {
+          const diff = await verifyImport(newModel, obj.check, c.vocabSize);
+          if (diff > 1e-2) throw new Error(`Verification failed: logits differ from PyTorch by ${diff.toExponential(2)}`);
+          diffMsg = `verified vs PyTorch (max logit diff ${diff.toExponential(1)})`;
+        }
+
+        // Everything succeeded: now swap state (never while text is being generated with the old model).
+        if (isGenerating) {
+          newModel.dispose(); newModel = null;
+          if (!quiet) alert('Wait for text generation to finish, then import again.');
+          return false;
+        }
+        disposeModel();
+        if (!quiet) {
+          if (obj.datasetText) currentText = obj.datasetText;
+          $('custom-dataset-input').value = currentText;
+        }
+        setVocab(obj.chars);
+        trainedInfo = obj.training || {};
+        installModel(newModel, { blockSize: c.blockSize, embedDim: c.embedDim, heads: c.heads, layers: c.layers });
+        newModel = null;
+
+        const t = trainedInfo;
+        $('metric-loss').textContent = t.finalTrainLoss != null ? t.finalTrainLoss.toFixed(4) : '--';
+        $('metric-val').textContent = t.finalValLoss != null ? t.finalValLoss.toFixed(4) : '--';
+        $('metric-ppl').textContent = t.finalValLoss != null ? Math.exp(Math.min(t.finalValLoss, 20)).toFixed(2) : '--';
+        $('metric-steps').textContent = t.steps != null ? t.steps.toLocaleString() : '--';
+        $('metric-time').textContent = t.durationSec != null ? `Time: ${t.durationSec.toFixed(0)}s on ${t.device}` : 'Time: --';
+        $('import-info').textContent = `${label}: ${model.countParams().toLocaleString()} params, ${diffMsg}`;
+        renderHistory(obj.history || []);
+        if (!quiet) {
+          (obj.samples || []).forEach(s => logCheckpoint(`[Step ${s.step}] "${s.text}"`));
+          logCheckpoint(`// Imported trained model (${diffMsg})`);
+        }
+        updateModelInspectorInfo();
+        if (!quiet) updateStatus('Trained model loaded', 'bg-emerald-500');
+        hasUnsavedChanges = true;
+        return true;
+      } catch (e) {
+        if (newModel) newModel.dispose();
+        if (quiet) logCheckpoint('// Model sync import failed: ' + e.message);
+        else {
+          alert('Import failed: ' + e.message);
+          updateStatus(trainedInfo ? 'Trained model loaded' : (model ? 'Untrained preview' : 'No model'), trainedInfo ? 'bg-emerald-500' : 'bg-slate-500');
+        }
+        return false;
+      }
+    }
+
+    // ======================================================================
+    // Loss chart
+    // ======================================================================
+    function initChart() {
+      const ds = (label, color, fill) => ({ label, data: [], borderColor: color, backgroundColor: 'rgba(56,189,248,0.1)', borderWidth: 2, fill, tension: 0.3, pointRadius: 0, spanGaps: true });
+      lossChart = new Chart($('lossChart').getContext('2d'), {
+        type: 'line',
+        data: { labels: [], datasets: [ds('Train', '#38bdf8', true), ds('Validation', '#fbbf24', false)] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 10 }, title: { display: true, text: 'Step', color: '#64748b' } },
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } }
+          },
+          plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } } }
+        }
+      });
+    }
+
+    function renderHistory(history) {
+      lossChart.data.labels = history.map(h => h.step);
+      lossChart.data.datasets[0].data = history.map(h => h.train);
+      lossChart.data.datasets[1].data = history.map(h => h.val);
+      lossChart.update('none');
+    }
+
+    // ======================================================================
+    // Generation (right-padded context so the last real token's logits are read at ctx.length-1)
+    // ======================================================================
+    function padRight(ids, T) {
+      return ids.length < T ? ids.concat(new Array(T - ids.length).fill(0)) : ids;
+    }
+
+    async function generateTextFromPrompt() {
+      if (!model || isGenerating) return;
+      if (trainer.syncing) { alert('A model sync is in progress. Try again in a moment.'); return; }
+      if (!trainedInfo && !confirm('No trained model is loaded, so the output will be random characters. Continue?')) return;
+
+      const promptText = $('prompt-input').value || 'To be';
+      const maxTokens = parseInt($('param-gen-tokens').value);
+      const temperature = parseFloat($('param-temp').value);
+      const topK = parseInt($('param-topk').value);
+      const T = modelConfig.blockSize;
+      const out = $('generation-output');
+      out.textContent = promptText;
+
+      isGenerating = true;
+      stopGenerationFlag = false;
+      $('btn-generate-text').disabled = true;
+      $('btn-stop-text').disabled = false;
+
+      let seq = Array.from(promptText).filter(c => charToIdx[c] !== undefined).map(c => charToIdx[c]);
+      if (seq.length === 0) seq = [0];
+      let text = promptText;
+
+      try {
+        for (let i = 0; i < maxTokens && !stopGenerationFlag; i++) {
+          const ctx = seq.slice(-T);
+          const next = tf.tidy(() => {
+            const logits = model.predict(tf.tensor2d([padRight(ctx, T)], [1, T], 'int32'));
+            const last = logits.slice([0, ctx.length - 1, 0], [1, 1, vocabSize]).reshape([vocabSize]);
+            const { values, indices } = tf.topk(last.div(temperature), Math.min(topK, vocabSize));
+            const pick = tf.multinomial(values, 1).dataSync()[0];   // values are logits (multinomial applies softmax)
+            return indices.dataSync()[pick];
+          });
+          seq.push(next);
+          text += idxToChar[next] ?? '';
+          out.textContent = text;
+          out.scrollTop = out.scrollHeight;
+          await tf.nextFrame();
+        }
+        captureAttention(seq);
+      } finally {
+        isGenerating = false;
+        $('btn-generate-text').disabled = false;
+        $('btn-stop-text').disabled = true;
+      }
+    }
+
+    function stopGeneration() { stopGenerationFlag = true; }
+
+    // ======================================================================
+    // Attention heatmap
+    // ======================================================================
+    function captureAttention(seq) {
+      const T = modelConfig.blockSize;
+      const ctx = seq.slice(-T);
+      const layers = model.layers.filter(l => l instanceof CausalSelfAttention);
+      layers.forEach(l => { l.capture = true; });
+      try {
+        tf.tidy(() => { model.predict(tf.tensor2d([padRight(ctx, T)], [1, T], 'int32')); });
+      } finally {
+        layers.forEach(l => { l.capture = false; });
+      }
+      attnCache = { chars: ctx.map(i => idxToChar[i] ?? '?'), layers: layers.map(l => l.lastAttn.arraySync()[0]) };
+      renderAttentionHeatmap();
+    }
+
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const vis = (c) => c === ' ' ? '␣' : c === '\n' ? '↵' : c === '\t' ? '⇥' : esc(c);
+
+    function renderAttentionHeatmap() {
+      const box = $('heatmap-grid-container');
+      if (!attnCache) {
+        box.innerHTML = '<p class="text-slate-500 text-xs">// Generate text in the Playground to compute the attention weights</p>';
+        return;
+      }
+      const L = Math.min(parseInt($('attn-layer-select').value) || 0, attnCache.layers.length - 1);
+      const H = Math.min(parseInt($('attn-head-select').value) || 0, attnCache.layers[L].length - 1);
+      const n = attnCache.chars.length;               // padded rows beyond n are ignored
+      const data = attnCache.layers[L][H];
+
+      let html = '<table class="hm border-collapse text-[10px] font-mono"><tr><th></th>';
+      for (let c = 0; c < n; c++) html += `<th>${vis(attnCache.chars[c])}</th>`;
+      html += '</tr>';
+      for (let r = 0; r < n; r++) {
+        html += `<tr><th>${vis(attnCache.chars[r])}</th>`;
+        for (let c = 0; c < n; c++) {
+          const s = data[r][c];
+          html += `<td data-r="${r}" data-c="${c}" data-s="${s}" style="background:rgba(56,189,248,${Math.min(s * 1.5, 1)})"></td>`;
+        }
+        html += '</tr>';
+      }
+      box.innerHTML = html + '</table>';
+    }
+
+    document.addEventListener('mouseover', (e) => {
+      const td = e.target.closest && e.target.closest('#heatmap-grid-container td');
+      if (!td || !attnCache) return;
+      const r = +td.dataset.r, c = +td.dataset.c;
+      $('attn-target').textContent = `#${r} "${attnCache.chars[r]}"`;
+      $('attn-source').textContent = `#${c} "${attnCache.chars[c]}"`;
+      $('attn-score').textContent = (+td.dataset.s).toFixed(4);
+    });
+
+    // ======================================================================
+    // Dataset editor
+    // ======================================================================
+    function applyCustomDataset() {
+      const text = $('custom-dataset-input').value;
+      if (text.length < 50) { alert('Please enter at least 50 characters of text.'); return; }
+      if (!confirmDiscardTrained()) return;
+      currentText = text;
+      processTextCorpus(currentText);
+      switchTab('dashboard');
+    }
+
+    // ======================================================================
+    // Local backup (corpus + config; weights live in the Colab-exported file)
+    // ======================================================================
     function logStorageMessage(message, type = 'info') {
-      const consoleOutput = document.getElementById('storage-console-output');
-      if (!consoleOutput) return;
-      const timeStr = new Date().toLocaleTimeString();
+      const box = $('storage-console-output');
+      const styles = { info: ['text-sky-400', 'ℹ️'], success: ['text-emerald-400', '✅'], error: ['text-rose-400', '❌'], warning: ['text-amber-400', '⚠️'] };
+      const [cls, icon] = styles[type] || styles.info;
       const div = document.createElement('div');
-
-      let colorClass = 'text-sky-400';
-      let icon = 'ℹ️';
-      if (type === 'success') { colorClass = 'text-emerald-400'; icon = '✅'; }
-      if (type === 'error') { colorClass = 'text-rose-400'; icon = '❌'; }
-      if (type === 'warning') { colorClass = 'text-amber-400'; icon = '⚠️'; }
-
-      div.className = `${colorClass}`;
-      div.textContent = `[${timeStr}] ${icon} ${message}`;
-      consoleOutput.appendChild(div);
-      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      div.className = cls;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${icon} ${message}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
     }
 
     function getApplicationData() {
       return {
         timestamp: new Date().toISOString(),
         datasetText: currentText,
-        hyperparams: {
-          blockSize: parseInt(document.getElementById('param-block-size').value),
-          embedDim: parseInt(document.getElementById('param-embed-dim').value),
-          heads: parseInt(document.getElementById('param-heads').value),
-          layers: parseInt(document.getElementById('param-layers').value),
-          batchSize: parseInt(document.getElementById('param-batch-size').value),
-          lr: parseFloat(document.getElementById('param-lr').value),
-          epochs: parseInt(document.getElementById('param-epochs').value)
-        },
+        hyperparams: readHyperparams(),
         generationParams: {
-          temp: parseFloat(document.getElementById('param-temp').value),
-          topK: parseInt(document.getElementById('param-topk').value),
-          genTokens: parseInt(document.getElementById('param-gen-tokens').value)
-        },
-        metrics: {
-          currentEpoch,
-          currentStep,
-          lossHistory
+          temp: parseFloat($('param-temp').value),
+          topK: parseInt($('param-topk').value),
+          genTokens: parseInt($('param-gen-tokens').value)
         }
       };
     }
 
-    async function saveToDeviceFile(forcePicker = false) {
-      const data = getApplicationData();
-      const jsonString = JSON.stringify(data, null, 2);
+    function saveLocal(json) {
+      try { localStorage.setItem('midllm_local_backup', json); return true; }
+      catch (e) { logStorageMessage(`localStorage write failed: ${e.message}`, 'error'); return false; }
+    }
 
-      // Save synchronously to localStorage as immediate safety net
-      localStorage.setItem('midllm_local_backup', jsonString);
+    function markBackedUp() {
+      hasUnsavedChanges = false;
+      $('last-backup-time').textContent = new Date().toLocaleTimeString();
+      resetAutoBackupTimer();
+    }
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          // Open file picker if no handle exists or explicitly requested
-          if (!fileHandle || forcePicker) {
-            fileHandle = await window.showSaveFilePicker({
-              suggestedName: 'midllm_backup.json',
-              types: [{
-                description: 'JSON Backup File',
-                accept: { 'application/json': ['.json'] },
-              }],
-            });
-            document.getElementById('storage-filename-input').value = fileHandle.name;
-            logStorageMessage(`Bound target file: ${fileHandle.name}`, 'info');
-          }
+    async function saveToDeviceFile(forcePicker = false, auto = false) {
+      const json = JSON.stringify(getApplicationData(), null, 2);
+      const savedLocal = saveLocal(json);
 
-          // Write and overwrite contents of the single file directly
-          const writable = await fileHandle.createWritable();
-          await writable.write(jsonString);
-          await writable.close();
-
-          hasUnsavedChanges = false;
-          const timeStr = new Date().toLocaleTimeString();
-          document.getElementById('last-backup-time').innerText = timeStr;
-          logStorageMessage(`Successfully saved data to single file on device!`, 'success');
-          resetAutoBackupTimer();
-          return true;
-        } catch (err) {
-          if (err.name === 'AbortError') {
-            logStorageMessage('File save prompt was canceled by the user.', 'warning');
-          } else {
-            logStorageMessage(`File write error: ${err.message}`, 'error');
-          }
-          return false;
+      if (!('showSaveFilePicker' in window)) {
+        if (auto) { if (savedLocal) { logStorageMessage('Auto-backup saved to browser storage.', 'success'); markBackedUp(); } return; }
+        fallbackDownload(json);
+        logStorageMessage('Saved via file download and browser storage.', 'success');
+        markBackedUp();
+        return;
+      }
+      // Pickers need a user gesture, so an automatic backup only writes to an already-bound file.
+      if (auto && !fileHandle) {
+        if (savedLocal) { logStorageMessage('Auto-backup saved to browser storage (no file bound).', 'success'); markBackedUp(); }
+        return;
+      }
+      try {
+        if (!fileHandle || forcePicker) {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: 'midllm_backup.json',
+            types: [{ description: 'JSON Backup File', accept: { 'application/json': ['.json'] } }]
+          });
+          $('storage-filename-input').value = fileHandle.name;
+          logStorageMessage(`Bound target file: ${fileHandle.name}`, 'info');
         }
-      } else {
-        // Fallback for browsers without File System Access API
-        fallbackDownload(jsonString);
-        hasUnsavedChanges = false;
-        const timeStr = new Date().toLocaleTimeString();
-        document.getElementById('last-backup-time').innerText = timeStr;
-        logStorageMessage('Saved via file download fallback and updated localStorage.', 'success');
-        resetAutoBackupTimer();
-        return true;
+        const writable = await fileHandle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        logStorageMessage(`Saved backup to ${fileHandle.name}.`, 'success');
+        markBackedUp();
+      } catch (err) {
+        if (err.name === 'AbortError') logStorageMessage('File save prompt was canceled.', 'warning');
+        else logStorageMessage(`File write error: ${err.message}`, 'error');
       }
     }
 
-    function fallbackDownload(jsonString) {
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = 'midllm_backup.json';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
+    function fallbackDownload(json) {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = 'midllm_backup.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
     function restoreFromLocalStorage() {
-      const savedData = localStorage.getItem('midllm_local_backup') || localStorage.getItem('llm_studio_local_backup');
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          if (parsed.datasetText) {
-            currentText = parsed.datasetText;
-            document.getElementById('custom-dataset-input').value = currentText;
-            processTextCorpus(currentText);
-          }
-          if (parsed.hyperparams) {
-            if (parsed.hyperparams.blockSize) {
-              document.getElementById('param-block-size').value = parsed.hyperparams.blockSize;
-              document.getElementById('val-block-size').innerText = parsed.hyperparams.blockSize;
-            }
-            if (parsed.hyperparams.embedDim) {
-              document.getElementById('param-embed-dim').value = parsed.hyperparams.embedDim;
-              document.getElementById('val-embed-dim').innerText = parsed.hyperparams.embedDim;
-            }
-            if (parsed.hyperparams.heads) {
-              document.getElementById('param-heads').value = parsed.hyperparams.heads;
-              document.getElementById('val-heads').innerText = parsed.hyperparams.heads;
-            }
-            if (parsed.hyperparams.layers) {
-              document.getElementById('param-layers').value = parsed.hyperparams.layers;
-              document.getElementById('val-layers').innerText = parsed.hyperparams.layers;
-            }
-            if (parsed.hyperparams.batchSize) {
-              document.getElementById('param-batch-size').value = parsed.hyperparams.batchSize;
-              document.getElementById('val-batch-size').innerText = parsed.hyperparams.batchSize;
-            }
-            if (parsed.hyperparams.lr) {
-              document.getElementById('param-lr').value = parsed.hyperparams.lr;
-              document.getElementById('val-lr').innerText = parsed.hyperparams.lr;
-            }
-            if (parsed.hyperparams.epochs) {
-              document.getElementById('param-epochs').value = parsed.hyperparams.epochs;
-              document.getElementById('val-epochs').innerText = parsed.hyperparams.epochs;
-            }
-            buildModelFromParams();
-          }
-          hasUnsavedChanges = false;
-          logStorageMessage(`Restored latest state from local storage (${parsed.timestamp})`, 'success');
-        } catch (e) {
-          logStorageMessage('Failed to parse local backup storage data.', 'error');
+      let saved = null;
+      try { saved = localStorage.getItem('midllm_local_backup'); } catch (e) {}
+      if (!saved) { logStorageMessage('No previous local backup found in storage.', 'warning'); return; }
+      if (!confirmDiscardTrained()) return;
+      try {
+        const p = JSON.parse(saved);
+        const hp = p.hyperparams || {};
+        setSlider('param-block-size', hp.blockSize);
+        setSlider('param-embed-dim', hp.embedDim);
+        setSlider('param-heads', hp.heads);
+        setSlider('param-layers', hp.layers);
+        setSlider('param-batch-size', hp.batchSize);
+        setSlider('param-lr', hp.lr);
+        setSlider('param-max-steps', hp.maxSteps);
+        const g = p.generationParams || {};
+        setSlider('param-temp', g.temp);
+        setSlider('param-topk', g.topK);
+        setSlider('param-gen-tokens', g.genTokens);
+        if (p.datasetText) {
+          currentText = p.datasetText;
+          $('custom-dataset-input').value = currentText;
+          processTextCorpus(currentText);
         }
-      } else {
-        logStorageMessage('No previous local backup found in storage.', 'warning');
+        hasUnsavedChanges = false;
+        logStorageMessage(`Restored state from browser storage (${p.timestamp}).`, 'success');
+      } catch (e) {
+        logStorageMessage('Failed to parse local backup data.', 'error');
       }
     }
 
     function startAutoBackupTimer() {
       secondsRemaining = 300;
       if (countdownTimer) clearInterval(countdownTimer);
-
       countdownTimer = setInterval(() => {
         secondsRemaining--;
         if (secondsRemaining <= 0) {
-          saveToDeviceFile(false);
           secondsRemaining = 300;
+          if (hasUnsavedChanges) saveToDeviceFile(false, true);
         }
-        const mins = Math.floor(secondsRemaining / 60).toString().padStart(2, '0');
-        const secs = (secondsRemaining % 60).toString().padStart(2, '0');
-        const timerElem = document.getElementById('timer-display');
-        if (timerElem) timerElem.innerText = `${mins}:${secs}`;
+        const m = String(Math.floor(secondsRemaining / 60)).padStart(2, '0');
+        const s = String(secondsRemaining % 60).padStart(2, '0');
+        $('timer-display').textContent = `${m}:${s}`;
       }, 1000);
     }
 
     function resetAutoBackupTimer() {
       secondsRemaining = 300;
-      const timerElem = document.getElementById('timer-display');
-      if (timerElem) timerElem.innerText = "05:00";
+      $('timer-display').textContent = '05:00';
     }
 
-    // Auto-save on page exit / unload
-    window.addEventListener('beforeunload', (event) => {
-      if (hasUnsavedChanges) {
-        localStorage.setItem('midllm_local_backup', JSON.stringify(getApplicationData()));
-        event.preventDefault();
-        event.returnValue = '';
-      }
-    });
-
     window.addEventListener('pagehide', () => {
-      if (hasUnsavedChanges) {
-        localStorage.setItem('midllm_local_backup', JSON.stringify(getApplicationData()));
-      }
+      if (hasUnsavedChanges) { try { localStorage.setItem('midllm_local_backup', JSON.stringify(getApplicationData())); } catch (e) {} }
     });
 
+    // ======================================================================
+    // Colab trainer connection: Start / Pause / Stop, nonstop mode, live metrics, model sync
+    // ======================================================================
+    const trainer = { url: null, token: null, connected: false, timer: null, state: 'offline', runId: undefined,
+                      lastHistAt: 0, lastSyncAt: 0, lastSyncStep: -1, syncing: false, lastStatus: null,
+                      sampleStep: -1, lastError: null };
+    let wakeLock = null;
+    let modelFileHandle = null;
 
+    async function api(path, body) {
+      const opts = { headers: { 'X-Token': trainer.token } };
+      if (body !== undefined) { opts.method = 'POST'; opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      const r = await fetch(trainer.url + path, opts);
+      if (r.status === 401) throw new Error('wrong token (paste the full connection code)');
+      if (!r.ok) {
+        let m = r.statusText || ('HTTP ' + r.status);
+        try { m = (await r.json()).error || m; } catch (e) {}
+        throw new Error(m);
+      }
+      return r;
+    }
+
+    const fmtDur = (s) => { s = Math.floor(s || 0); return `${Math.floor(s / 3600)}h ${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}m ${String(s % 60).padStart(2, '0')}s`; };
+
+    async function connectTrainer(codeArg) {
+      const code = (typeof codeArg === 'string' ? codeArg : $('conn-code').value).trim();
+      const i = code.lastIndexOf('#');
+      if (i < 1 || i === code.length - 1) { $('conn-info').textContent = 'Paste the full connection code printed by the Colab script (https://….trycloudflare.com#token).'; return; }
+      trainer.url = code.slice(0, i).replace(/\/+$/, '');
+      trainer.token = code.slice(i + 1);
+      $('conn-info').textContent = 'Connecting…';
+      try {
+        await api('/status');
+        trainer.connected = true;
+        trainer.runId = undefined; trainer.sampleStep = -1; trainer.lastHistAt = 0; trainer.lastSyncStep = -1;
+        trainer.lastSyncAt = Date.now();
+        try { localStorage.setItem('midllm_trainer_conn', code); } catch (e) {}
+        $('btn-connect').disabled = true; $('btn-disconnect').disabled = false;
+        logCheckpoint('// Connected to the Colab trainer.');
+        clearTimeout(trainer.timer);
+        pollTick();
+      } catch (e) {
+        trainer.connected = false;
+        $('conn-info').textContent = 'Connection failed: ' + e.message + ' (is the Colab cell still running?)';
+      }
+    }
+
+    function disconnectTrainer() {
+      clearTimeout(trainer.timer);
+      trainer.connected = false; trainer.state = 'offline';
+      try { localStorage.removeItem('midllm_trainer_conn'); } catch (e) {}
+      updateWakeLock(false);
+      $('btn-connect').disabled = false; $('btn-disconnect').disabled = true;
+      ['btn-train-start', 'btn-train-pause', 'btn-train-stop', 'btn-sync', 'btn-dl'].forEach(id => $(id).disabled = true);
+      $('conn-info').textContent = 'Disconnected. Training (if running) continues on Colab; reconnect with the same code.';
+      updateStatus(model ? (trainedInfo ? 'Trained model loaded' : 'Untrained preview') : 'No model', 'bg-slate-500');
+    }
+
+    async function pollTick() {
+      if (!trainer.connected) return;
+      let delay = 3000;
+      try {
+        const s = await (await api('/status')).json();
+        applyStatus(s);
+        delay = s.state === 'training' ? 1000 : 3000;
+        const histEvery = s.state === 'training' ? 5000 : 20000;
+        if (Date.now() - trainer.lastHistAt > histEvery) await refreshHistory();
+        await maybeSync(s);
+      } catch (e) {
+        $('conn-info').textContent = `Connection lost (${e.message}); retrying…`;
+        delay = 5000;
+      }
+      trainer.timer = setTimeout(pollTick, delay);
+    }
+
+    const STATE_BADGE = {
+      training: ['Training (Colab)', 'bg-emerald-500 animate-pulse'], paused: ['Paused', 'bg-amber-400'],
+      stopped: ['Stopped', 'bg-slate-400'], finished: ['Finished', 'bg-cyan-400'],
+      error: ['Trainer error', 'bg-rose-500'], idle: ['Connected · idle', 'bg-slate-500']
+    };
+
+    function applyStatus(s) {
+      if (trainer.runId !== undefined && s.runId !== trainer.runId) { trainer.sampleStep = 0; trainer.lastSyncStep = -1; }
+      trainer.runId = s.runId;
+      trainer.state = s.state;
+      trainer.lastStatus = s;
+      const running = s.state === 'training', paused = s.state === 'paused', active = running || paused;
+
+      $('conn-info').textContent = `Connected · ${s.gpu || s.device}` + (s.params ? ` · ${s.params.toLocaleString()} params` : ' · no model yet') +
+        (s.lastCheckpoint ? ` · Colab checkpoint @ step ${s.lastCheckpoint.step.toLocaleString()}` : '');
+      $('metric-loss').textContent = s.trainLoss != null ? s.trainLoss.toFixed(4) : '--';
+      $('metric-val').textContent = s.valLoss != null ? s.valLoss.toFixed(4) : '--';
+      $('metric-ppl').textContent = s.valLoss != null ? Math.exp(Math.min(s.valLoss, 20)).toFixed(2) : '--';
+      $('metric-steps').textContent = !s.hasModel ? '--' : (s.maxSteps ? `${s.sessionStep.toLocaleString()} / ${s.maxSteps.toLocaleString()}` : `${s.step.toLocaleString()} ∞`);
+      $('metric-time').textContent = s.hasModel ? `${fmtDur(s.elapsed)} · ${Math.round(s.tokPerSec).toLocaleString()} tok/s` : 'Time: --';
+
+      const [label, dot] = STATE_BADGE[s.state] || STATE_BADGE.idle;
+      updateStatus(label, dot);
+      if (s.state === 'error' && s.error !== trainer.lastError) logCheckpoint('// TRAINER ERROR: ' + s.error);
+      trainer.lastError = s.state === 'error' ? s.error : null;
+
+      $('btn-train-start').disabled = active;
+      $('btn-train-pause').disabled = !active;
+      $('btn-train-pause').innerHTML = paused ? '<i class="fa-solid fa-play"></i> Resume' : '<i class="fa-solid fa-pause"></i> Pause';
+      $('btn-train-stop').disabled = !active;
+      $('btn-sync').disabled = !s.hasModel || trainer.syncing;
+      $('btn-dl').disabled = !s.hasModel;
+      $('opt-nonstop').disabled = active;
+      updateWakeLock(running && $('opt-keepawake').checked);
+    }
+
+    async function refreshHistory() {
+      const h = await (await api('/history')).json();
+      trainer.lastHistAt = Date.now();
+      if (h.history.length) renderHistory(h.history);
+      const first = trainer.sampleStep < 0;
+      if (!first) h.samples.filter(s => s.step > trainer.sampleStep).forEach(s => logCheckpoint(`[Step ${s.step.toLocaleString()}] "${s.text}"`));
+      if (h.samples.length) trainer.sampleStep = Math.max(trainer.sampleStep, h.samples[h.samples.length - 1].step);
+      else if (first) trainer.sampleStep = 0;
+    }
+
+    async function maybeSync(s) {
+      if (!s.hasModel || trainer.syncing || isGenerating || s.step === trainer.lastSyncStep) return;
+      const every = parseInt($('opt-sync-min').value) * 60000;
+      if (s.state === 'training' ? (Date.now() - trainer.lastSyncAt >= every) : true) await syncModelNow(true);
+    }
+
+    async function syncModelNow(auto) {
+      if (!trainer.connected || trainer.syncing) return;
+      if (isGenerating) { if (!auto) alert('Wait for text generation to finish (or stop it), then sync again.'); return; }
+      trainer.syncing = true;
+      $('btn-sync').disabled = true;
+      const stepAtStart = trainer.lastStatus ? trainer.lastStatus.step : -1;
+      try {
+        const text = await (await api('/model')).text();
+        await writeModelFile(text);
+        const obj = JSON.parse(text);
+        const ok = await importTrainedObject(obj, `Colab step ${obj.training.steps.toLocaleString()}`, true);
+        trainer.lastSyncStep = ok ? obj.training.steps : stepAtStart;
+        if (ok && !auto) logCheckpoint(`// Model synced at step ${obj.training.steps.toLocaleString()}.`);
+      } catch (e) {
+        trainer.lastSyncStep = stepAtStart;
+        logCheckpoint('// Model sync failed: ' + e.message);
+      } finally {
+        trainer.lastSyncAt = Date.now();
+        trainer.syncing = false;
+        $('btn-sync').disabled = !(trainer.lastStatus && trainer.lastStatus.hasModel);
+      }
+    }
+
+    async function downloadModelFile() {
+      try {
+        const blob = await (await api('/model')).blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'midllm_model.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) { alert('Download failed: ' + e.message); }
+    }
+
+    async function bindModelFile() {
+      if (!('showSaveFilePicker' in window)) { alert('This browser cannot auto-save to a file. Use Download .json, or Chrome/Edge.'); return; }
+      try {
+        modelFileHandle = await window.showSaveFilePicker({ suggestedName: 'midllm_model.json', types: [{ description: 'MidLLM model', accept: { 'application/json': ['.json'] } }] });
+        $('autosave-info').textContent = `Auto-saving to ${modelFileHandle.name} on every sync.`;
+        if (trainer.connected && trainer.lastStatus && trainer.lastStatus.hasModel) syncModelNow(false);
+      } catch (e) { if (e.name !== 'AbortError') alert('Could not bind file: ' + e.message); }
+    }
+
+    async function writeModelFile(text) {
+      if (!modelFileHandle) return;
+      try {
+        const w = await modelFileHandle.createWritable();
+        await w.write(text);
+        await w.close();
+        $('autosave-info').textContent = `Saved ${modelFileHandle.name} at ${new Date().toLocaleTimeString()}.`;
+      } catch (e) {
+        $('autosave-info').textContent = 'Auto-save failed: ' + e.message;
+        logCheckpoint('// Model file auto-save failed: ' + e.message);
+      }
+    }
+
+    async function startTraining() {
+      if (!trainer.connected) return;
+      const text = $('custom-dataset-input').value;
+      if (text.length < 50) { alert('The dataset needs at least 50 characters. Paste text or load a file in the Dataset Editor tab.'); return; }
+      currentText = text;
+      const config = Object.assign(readHyperparams(), { nonstop: $('opt-nonstop').checked });
+      try {
+        const r = await (await api('/start', { text, config, continue: $('opt-continue').checked })).json();
+        trainer.lastSyncAt = Date.now();
+        trainer.lastHistAt = 0;
+        logCheckpoint(`// Training ${r.continued ? 'continued from existing weights' : 'started'} (${config.nonstop ? 'nonstop' : config.maxSteps.toLocaleString() + ' steps'}, ${text.length.toLocaleString()} chars).`);
+        clearTimeout(trainer.timer);
+        pollTick();
+      } catch (e) { alert('Could not start training: ' + e.message); }
+    }
+
+    async function togglePause() {
+      try { await api(trainer.state === 'paused' ? '/resume' : '/pause', {}); clearTimeout(trainer.timer); pollTick(); }
+      catch (e) { alert(e.message); }
+    }
+
+    async function stopTraining() {
+      if (!confirm('Stop training? The weights are kept, and you can continue later with Start.')) return;
+      try { await api('/stop', {}); clearTimeout(trainer.timer); pollTick(); }
+      catch (e) { alert(e.message); }
+    }
+
+    async function updateWakeLock(hold) {
+      try {
+        if (hold && !wakeLock && 'wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } else if (!hold && wakeLock) { const w = wakeLock; wakeLock = null; await w.release(); }
+      } catch (e) { wakeLock = null; }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && trainer.state === 'training') updateWakeLock($('opt-keepawake').checked);
+    });
+
+    // ======================================================================
+    // Init
+    // ======================================================================
     window.addEventListener('DOMContentLoaded', async () => {
-      // Check TFJS Backend
       await tf.ready();
-      document.getElementById('backend-type').innerText = tf.getBackend().toUpperCase();
+      $('backend-type').textContent = tf.getBackend().toUpperCase();
 
-      // Init UI controls & dynamic slider labels
-      const bindSlider = (id, target) => {
-        const el = document.getElementById(id);
-        el.addEventListener('input', () => {
-          document.getElementById(target).innerText = el.value;
-          hasUnsavedChanges = true;
-        });
-      };
+      buildTabs();
+      $('hp-sliders').innerHTML = [
+        sliderRow('block-size', 'Context Window (block size)', 16, 256, 16, 64),
+        sliderRow('embed-dim', 'Embedding Dim (d_model)', 16, 256, 16, 64),
+        sliderRow('layers', 'Transformer Layers', 1, 8, 1, 4),
+        sliderRow('batch-size', 'Batch Size', 16, 256, 16, 64),
+        sliderRow('lr', 'Peak Learning Rate', 0.0005, 0.01, 0.0005, 0.003),
+        sliderRow('max-steps', 'Training Steps (ignored in nonstop)', 500, 200000, 500, 5000)
+      ].join('');
+      $('gen-sliders').innerHTML = [
+        sliderRow('temp', 'Temperature', 0.1, 2.0, 0.1, 0.8),
+        sliderRow('topk', 'Top-K Sampling', 1, 50, 1, 10),
+        sliderRow('gen-tokens', 'Max Generated Tokens', 20, 500, 10, 150)
+      ].join('');
 
-      bindSlider('param-block-size', 'val-block-size');
-      bindSlider('param-embed-dim', 'val-embed-dim');
-      bindSlider('param-heads', 'val-heads');
-      bindSlider('param-layers', 'val-layers');
-      bindSlider('param-batch-size', 'val-batch-size');
-      bindSlider('param-lr', 'val-lr');
-      bindSlider('param-epochs', 'val-epochs');
-      bindSlider('param-temp', 'val-temp');
-      bindSlider('param-topk', 'val-topk');
-      bindSlider('param-gen-tokens', 'val-gen-tokens');
+      document.querySelectorAll('input[type=range]').forEach(el => {
+        el.addEventListener('input', () => { $('val-' + el.id.replace('param-', '')).textContent = el.value; hasUnsavedChanges = true; });
+      });
+      $('param-heads').addEventListener('change', () => { hasUnsavedChanges = true; });
+      $('custom-dataset-input').addEventListener('input', (e) => { $('custom-char-count').textContent = e.target.value.length; hasUnsavedChanges = true; });
+      $('model-file-input').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        e.target.value = '';
+        if (f) await importTrainedModel(f);
+      });
 
-      document.getElementById('custom-dataset-input').addEventListener('input', (e) => {
-        document.getElementById('custom-char-count').innerText = e.target.value.length;
+      $('opt-nonstop').addEventListener('change', (e) => { $('param-max-steps').disabled = e.target.checked; $('param-max-steps').style.opacity = e.target.checked ? 0.4 : 1; });
+      $('dataset-file-input').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        e.target.value = '';
+        if (!f) return;
+        const t = (await f.text()).replace(/\r\n?/g, '\n');
+        $('custom-dataset-input').value = t;
+        $('custom-char-count').textContent = t.length;
         hasUnsavedChanges = true;
+        logCheckpoint(`// Loaded dataset file "${f.name}" (${t.length.toLocaleString()} chars). Press Start to train on it.`);
       });
 
       initChart();
+      switchTab('dashboard');
       preprocessSelectedDataset();
+      hasUnsavedChanges = false;
+      try { const c = localStorage.getItem('midllm_trainer_conn'); if (c) { $('conn-code').value = c; connectTrainer(c); } } catch (e) {}
 
-      // Start device storage system & auto-backup timer
-      logStorageMessage('MidLLM Device Storage initialized.', 'info');
+      logStorageMessage('MidLLM device storage initialized.', 'info');
       startAutoBackupTimer();
-
-      const savedData = localStorage.getItem('midllm_local_backup') || localStorage.getItem('llm_studio_local_backup');
-      if (savedData) {
-        logStorageMessage('Previous local backup session detected in browser storage.', 'info');
-      }
+      try { if (localStorage.getItem('midllm_local_backup')) logStorageMessage('Previous local backup detected in browser storage.', 'info'); } catch (e) {}
     });
   </script>
 </body>
